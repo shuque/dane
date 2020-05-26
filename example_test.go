@@ -15,7 +15,7 @@ func Example() {
 	var server *Server
 
 	resolver := NewResolver(net.ParseIP("8.8.8.8"), 53)
-	hostname := "www.huque.com"
+	hostname := "www.example.com"
 	tlsa, err := GetTLSA(resolver, hostname, 443)
 	if err != nil {
 		log.Fatalf("%s", err)
