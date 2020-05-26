@@ -49,8 +49,11 @@ func ComputeTLSA(selector, mtype uint8, cert *x509.Certificate) (string, error) 
 
 //
 // ChainMatchesTLSA checks that the TLSA record data (tr) has a corresponding
-// match in the certificate chain (chain). It checks _all_ available TLSA
-// records against the chain, and records the status in TLSArdata structure.
+// match in the certificate chain (chain). Only one TLSA record needs to match
+// for the chain to be considered matched. However, this function checks all
+// available TLSA records and records the results of the match in the TLSArdata
+// structure. These results can be useful to diagnostic tools using this
+// package.
 //
 func ChainMatchesTLSA(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Config) bool {
 
