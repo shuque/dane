@@ -1,8 +1,9 @@
 package dane
 
 /*
- * These tests may not succeed without tweaking for your local dns
- * resolver and TLS server environment.
+ * Note: these test routines may not work unless you adapt this file
+ * to use validating DNS resolvers and appropriately configured DANE TLS
+ * servers you have access to.
  */
 
 import (
@@ -31,17 +32,17 @@ func TestDialTLS(t *testing.T) {
 		resolver    *Resolver
 		needsuccess bool
 	}{
-		{"www.huque.com", "50.116.63.23", 443, resolver1, true},
-		{"www.huque.com", "50.116.63.23", 443, resolver2, true},
+		{"www.example.com", "50.116.63.23", 443, resolver1, true},
+		{"www.example.com", "50.116.63.23", 443, resolver2, true},
 		{"www.amazon.com", "99.84.214.124", 443, resolver2, true},
-		{"doth.huque.com", "54.90.232.69", 853, resolver1, true},
-		{"adns1.aws.huque.com", "3.225.161.117", 443, resolver1, true},
-		{"adns2.aws.huque.com", "52.88.78.179", 443, resolver1, true},
-		{"ctest1.aws.huque.com", "3.225.161.117", 443, resolver1, true},
-		{"ctest2.aws.huque.com", "52.88.78.179", 443, resolver1, false},
-		{"badhash.dane.huque.com", "104.236.200.251", 443, resolver1, false},
-		{"badparam.dane.huque.com", "104.236.200.251", 443, resolver1, false},
-		{"expiredsig.dane.huque.com", "104.236.200.251", 443, resolver1, false},
+		{"doth.example.com", "54.90.232.69", 853, resolver1, true},
+		{"adns1.aws.example.com", "3.225.161.117", 443, resolver1, true},
+		{"adns2.aws.example.com", "52.88.78.179", 443, resolver1, true},
+		{"ctest1.aws.example.com", "3.225.161.117", 443, resolver1, true},
+		{"ctest2.aws.example.com", "52.88.78.179", 443, resolver1, false},
+		{"badhash.dane.example.com", "104.236.200.251", 443, resolver1, false},
+		{"badparam.dane.example.com", "104.236.200.251", 443, resolver1, false},
+		{"expiredsig.dane.example.com", "104.236.200.251", 443, resolver1, false},
 	}
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("## %s %s %d", tc.host, tc.ip, tc.port), func(t *testing.T) {

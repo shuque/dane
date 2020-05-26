@@ -1,5 +1,11 @@
 package dane
 
+/*
+ * Note: these test routines may not work unless you adapt this file
+ * to use validating DNS resolvers and appropriately configured DANE TLS
+ * servers you have access to.
+ */
+
 import (
 	"fmt"
 	"testing"
@@ -15,11 +21,10 @@ func TestDialStartTLS(t *testing.T) {
 		resolver    *Resolver
 		needsuccess bool
 	}{
-		{"mail.huque.com", "50.116.63.23", 25, "smtp", "", resolver1, true},
-		{"mail.huque.com", "50.116.63.23", 25, "blah", "", resolver1, false},
-		{"locutus.huque.com", "104.236.200.251", 143, "imap", "", resolver1, true},
-		{"locutus.huque.com", "104.236.200.251", 110, "pop3", "", resolver1, true},
-		{"truck.team1664.org", "109.190.84.43", 5222, "xmpp-client", "team1664.org", resolver1, true},
+		{"mail.example.com", "50.116.63.23", 25, "smtp", "", resolver1, true},
+		{"mail.example.com", "50.116.63.23", 25, "blah", "", resolver1, false},
+		{"locutus.example.com", "104.236.200.251", 143, "imap", "", resolver1, true},
+		{"locutus.example.com", "104.236.200.251", 110, "pop3", "", resolver1, true},
 	}
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("## %s %s %d", tc.host, tc.ip, tc.port), func(t *testing.T) {
