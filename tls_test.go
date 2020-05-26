@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 	// validating resolver
 	resolver1 = NewResolver(net.ParseIP("8.8.8.8"), 53)
 	// non-validating resolver
-	resolver2, _ = getResolver("")
+	resolver2, _ = GetResolver("")
 	os.Exit(m.Run())
 }
 

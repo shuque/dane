@@ -71,7 +71,7 @@ func (r *Resolver) Address() string {
 // initialized Resolver structure on success, otherwise sets error
 // to non-nil.
 //
-func getResolver(resconf string) (*Resolver, error) {
+func GetResolver(resconf string) (*Resolver, error) {
 
 	var ip net.IP
 	var resolver *Resolver
