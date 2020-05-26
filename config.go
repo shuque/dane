@@ -11,6 +11,7 @@ type Config struct {
 	SMTPAnyMode bool                  // Allow any DANE modes for SMTP
 	Appname     string                // SMTP application name
 	Servicename string                // Servicename, if different from server
+	Transcript  string                // StartTLS transcript
 	DANE        bool                  // do DANE authentication
 	PKIX        bool                  // fall back to PKIX authentication
 	Okdane      bool                  // DANE authentication result
