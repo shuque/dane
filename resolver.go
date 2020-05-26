@@ -71,7 +71,7 @@ func (r *Resolver) Address() string {
 // initialized Resolver structure on success, otherwise sets error
 // to non-nil.
 //
-func getResolver(config *Config, resconf string) (*Resolver, error) {
+func getResolver(resconf string) (*Resolver, error) {
 
 	var ip net.IP
 	var resolver *Resolver
@@ -82,7 +82,7 @@ func getResolver(config *Config, resconf string) (*Resolver, error) {
 	c, err := dns.ClientConfigFromFile(resconf)
 	if err == nil {
 		ip = net.ParseIP(c.Servers[0])
-		resolver = NewResolver(ip, 53)
+		resolver = NewResolver(ip, defaultResolverPort)
 	}
 	return resolver, err
 }

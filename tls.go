@@ -89,16 +89,17 @@ func ChainMatchesTLSA(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Conf
 				tr.message = err.Error()
 				break
 			}
-			if hash == tr.data {
-				hashMatched = true
-				if tr.usage == 2 || daneconfig.Okpkix {
-					Authenticated = true
-					tr.ok = true
-					tr.message = fmt.Sprintf("matched TA certificate at depth %d", i+1)
-				} else {
-					tr.ok = false
-					tr.message = fmt.Sprintf("matched TA certificate at depth %d but PKIX failed", i+1)
-				}
+			if hash != tr.data {
+				continue
+			}
+			hashMatched = true
+			if tr.usage == 2 || daneconfig.Okpkix {
+				Authenticated = true
+				tr.ok = true
+				tr.message = fmt.Sprintf("matched TA certificate at depth %d", i+1)
+			} else {
+				tr.ok = false
+				tr.message = fmt.Sprintf("matched TA certificate at depth %d but PKIX failed", i+1)
 			}
 		}
 		if !hashMatched {
