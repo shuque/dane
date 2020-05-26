@@ -13,13 +13,13 @@ import (
 // TLSArdata - TLSA rdata structure
 //
 type TLSArdata struct {
-	usage    uint8
-	selector uint8
-	mtype    uint8
-	data     string
-	checked  bool
-	ok       bool
-	message  string
+	Usage    uint8
+	Selector uint8
+	Mtype    uint8
+	Data     string
+	Checked  bool
+	Ok       bool
+	Message  string
 }
 
 //
@@ -27,26 +27,26 @@ type TLSArdata struct {
 //
 func (tr *TLSArdata) String() string {
 	return fmt.Sprintf("DANE TLSA %d %d %d [%s..]",
-		tr.usage, tr.selector, tr.mtype, tr.data[0:8])
+		tr.Usage, tr.Selector, tr.Mtype, tr.Data[0:8])
 }
 
 //
 // TLSAinfo contains details of the TLSA RRset.
 //
 type TLSAinfo struct {
-	qname string
-	alias []string
-	rdata []*TLSArdata
+	Qname string
+	Alias []string
+	Rdata []*TLSArdata
 }
 
 //
 // Uncheck unchecks result fields of all the TLSA rdata structs.
 //
 func (t *TLSAinfo) Uncheck() {
-	for _, tr := range t.rdata {
-		tr.checked = false
-		tr.ok = false
-		tr.message = ""
+	for _, tr := range t.Rdata {
+		tr.Checked = false
+		tr.Ok = false
+		tr.Message = ""
 	}
 }
 
@@ -54,17 +54,17 @@ func (t *TLSAinfo) Uncheck() {
 // Results prints TLSA RRset certificate matching results.
 //
 func (t *TLSAinfo) Results() {
-	if t.rdata == nil {
+	if t.Rdata == nil {
 		fmt.Printf("No TLSA records available.\n")
 		return
 	}
-	for _, tr := range t.rdata {
-		if !tr.checked {
+	for _, tr := range t.Rdata {
+		if !tr.Checked {
 			fmt.Printf("%s: not checked\n", tr)
-		} else if tr.ok {
-			fmt.Printf("%s: OK %s\n", tr, tr.message)
+		} else if tr.Ok {
+			fmt.Printf("%s: OK %s\n", tr, tr.Message)
 		} else {
-			fmt.Printf("%s: FAIL %s\n", tr, tr.message)
+			fmt.Printf("%s: FAIL %s\n", tr, tr.Message)
 		}
 	}
 }
@@ -72,13 +72,12 @@ func (t *TLSAinfo) Results() {
 //
 // Print prints information about the TLSAinfo TLSA RRset.
 func (t *TLSAinfo) Print() {
-	fmt.Printf("DNS TLSA RRset:\n  qname: %s\n", t.qname)
-	if t.alias != nil {
-		fmt.Printf("  alias: %s\n", t.alias)
+	fmt.Printf("DNS TLSA RRset:\n  qname: %s\n", t.Qname)
+	if t.Alias != nil {
+		fmt.Printf("  alias: %s\n", t.Alias)
 	}
-	for _, trdata := range t.rdata {
-		fmt.Printf("  %d %d %d %s\n", trdata.usage, trdata.selector,
-			trdata.mtype, trdata.data)
+	for _, tr := range t.Rdata {
+		fmt.Printf("  %d %d %d %s\n", tr.Usage, tr.Selector, tr.Mtype, tr.Data)
 	}
 }
 
@@ -133,56 +132,56 @@ func ChainMatchesTLSA(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Conf
 	var err error
 	var hashMatched bool
 
-	tr.checked = true
-	switch tr.usage {
+	tr.Checked = true
+	switch tr.Usage {
 	case 1, 3:
-		hash, err = ComputeTLSA(tr.selector, tr.mtype, chain[0])
+		hash, err = ComputeTLSA(tr.Selector, tr.Mtype, chain[0])
 		if err != nil {
-			tr.ok = false
-			tr.message = err.Error()
+			tr.Ok = false
+			tr.Message = err.Error()
 			break
 		}
-		if hash == tr.data {
-			if tr.usage == 3 || daneconfig.Okpkix {
+		if hash == tr.Data {
+			if tr.Usage == 3 || daneconfig.Okpkix {
 				Authenticated = true
-				tr.ok = true
-				tr.message = "matched EE certificate"
+				tr.Ok = true
+				tr.Message = "matched EE certificate"
 			} else {
-				tr.ok = false
-				tr.message = "matched EE certificate but PKIX failed"
+				tr.Ok = false
+				tr.Message = "matched EE certificate but PKIX failed"
 			}
 		} else {
-			tr.ok = false
-			tr.message = "did not match EE certificate"
+			tr.Ok = false
+			tr.Message = "did not match EE certificate"
 		}
 	case 0, 2:
 		for i, cert := range chain[1:] {
-			hash, err = ComputeTLSA(tr.selector, tr.mtype, cert)
+			hash, err = ComputeTLSA(tr.Selector, tr.Mtype, cert)
 			if err != nil {
-				tr.ok = false
-				tr.message = err.Error()
+				tr.Ok = false
+				tr.Message = err.Error()
 				break
 			}
-			if hash != tr.data {
+			if hash != tr.Data {
 				continue
 			}
 			hashMatched = true
-			if tr.usage == 2 || daneconfig.Okpkix {
+			if tr.Usage == 2 || daneconfig.Okpkix {
 				Authenticated = true
-				tr.ok = true
-				tr.message = fmt.Sprintf("matched TA certificate at depth %d", i+1)
+				tr.Ok = true
+				tr.Message = fmt.Sprintf("matched TA certificate at depth %d", i+1)
 			} else {
-				tr.ok = false
-				tr.message = fmt.Sprintf("matched TA certificate at depth %d but PKIX failed", i+1)
+				tr.Ok = false
+				tr.Message = fmt.Sprintf("matched TA certificate at depth %d but PKIX failed", i+1)
 			}
 		}
 		if !hashMatched {
-			tr.ok = false
-			tr.message = "did not match any TA certificate"
+			tr.Ok = false
+			tr.Message = "did not match any TA certificate"
 		}
 	default:
-		tr.ok = false
-		tr.message = fmt.Sprintf("invalid usage mode: %d", tr.usage)
+		tr.Ok = false
+		tr.Message = fmt.Sprintf("invalid usage mode: %d", tr.Usage)
 	}
 
 	return Authenticated
@@ -200,7 +199,7 @@ func smtpUsageOK(tr *TLSArdata, daneconfig *Config) bool {
 		return true
 	}
 
-	if tr.usage == 2 || tr.usage == 3 {
+	if tr.Usage == 2 || tr.Usage == 3 {
 		return true
 	}
 
@@ -219,18 +218,18 @@ func AuthenticateSingle(chain []*x509.Certificate, daneconfig *Config) bool {
 	var Authenticated, ok bool
 	var err error
 
-	for _, tr := range daneconfig.TLSA.rdata {
-		tr.checked = true
+	for _, tr := range daneconfig.TLSA.Rdata {
+		tr.Checked = true
 		if daneconfig.Appname == "smtp" && !smtpUsageOK(tr, daneconfig) {
-			tr.ok = false
-			tr.message = "invalid usage mode for smtp"
+			tr.Ok = false
+			tr.Message = "invalid usage mode for smtp"
 			continue
 		}
 		ok = ChainMatchesTLSA(chain, tr, daneconfig)
 		if !ok {
 			continue
 		}
-		if tr.usage == 3 && !daneconfig.DaneEEname {
+		if tr.Usage == 3 && !daneconfig.DaneEEname {
 			Authenticated = true
 			continue
 		}
@@ -238,8 +237,8 @@ func AuthenticateSingle(chain []*x509.Certificate, daneconfig *Config) bool {
 		if err == nil {
 			Authenticated = true
 		} else {
-			tr.ok = false
-			tr.message += " but name check failed"
+			tr.Ok = false
+			tr.Message += " but name check failed"
 		}
 	}
 

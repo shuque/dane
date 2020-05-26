@@ -220,19 +220,19 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 	}
 
 	t := new(TLSAinfo)
-	t.qname = dns.Fqdn(qname)
+	t.Qname = dns.Fqdn(qname)
 
 	for _, rr := range response.Answer {
 		if tlsa, ok := rr.(*dns.TLSA); ok {
-			if tlsa.Hdr.Name != t.qname {
-				t.alias = append(t.alias, tlsa.Hdr.Name)
+			if tlsa.Hdr.Name != t.Qname {
+				t.Alias = append(t.Alias, tlsa.Hdr.Name)
 			}
 			tr = new(TLSArdata)
-			tr.usage = tlsa.Usage
-			tr.selector = tlsa.Selector
-			tr.mtype = tlsa.MatchingType
-			tr.data = tlsa.Certificate
-			t.rdata = append(t.rdata, tr)
+			tr.Usage = tlsa.Usage
+			tr.Selector = tlsa.Selector
+			tr.Mtype = tlsa.MatchingType
+			tr.Data = tlsa.Certificate
+			t.Rdata = append(t.Rdata, tr)
 		}
 	}
 
