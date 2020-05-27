@@ -256,7 +256,7 @@ func AuthenticateAll(daneconfig *Config) bool {
 
 	var ok bool
 
-	for _, chain := range daneconfig.Certchains {
+	for _, chain := range daneconfig.VerifiedChains {
 		ok = AuthenticateSingle(chain, daneconfig)
 		if ok {
 			return true

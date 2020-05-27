@@ -6,18 +6,19 @@ import "crypto/x509"
 // Config contains a DANE configuration for a single Server.
 //
 type Config struct {
-	Server      *Server               // Server structure (name, ip, port)
-	DaneEEname  bool                  // Do name checks even for DANE-EE mode
-	SMTPAnyMode bool                  // Allow any DANE modes for SMTP
-	Appname     string                // SMTP application name
-	Servicename string                // Servicename, if different from server
-	Transcript  string                // StartTLS transcript
-	DANE        bool                  // do DANE authentication
-	PKIX        bool                  // fall back to PKIX authentication
-	Okdane      bool                  // DANE authentication result
-	Okpkix      bool                  // PKIX authentication result
-	TLSA        *TLSAinfo             // TLSA RRset information
-	Certchains  [][]*x509.Certificate // Verified server Certificate Chains
+	Server         *Server               // Server structure (name, ip, port)
+	NoVerify       bool                  // Don't verify server certificate
+	DaneEEname     bool                  // Do name checks even for DANE-EE mode
+	SMTPAnyMode    bool                  // Allow any DANE modes for SMTP
+	Appname        string                // STARTTLS application name
+	Servicename    string                // Servicename, if different from server
+	Transcript     string                // StartTLS transcript
+	DANE           bool                  // do DANE authentication
+	PKIX           bool                  // fall back to PKIX authentication
+	Okdane         bool                  // DANE authentication result
+	Okpkix         bool                  // PKIX authentication result
+	TLSA           *TLSAinfo             // TLSA RRset information
+	VerifiedChains [][]*x509.Certificate // Verified server Certificate Chains
 }
 
 //
@@ -41,7 +42,10 @@ func (c *Config) SetServer(server *Server) {
 // SetTLSA sets the TLSAinfo component of Config.
 //
 func (c *Config) SetTLSA(tlsa *TLSAinfo) {
-	c.TLSA = tlsa
+	if tlsa != nil {
+		tlsa.Uncheck()
+		c.TLSA = tlsa
+	}
 }
 
 //

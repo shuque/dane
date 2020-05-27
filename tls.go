@@ -67,7 +67,7 @@ func verifyServer(rawCerts [][]byte,
 		certs[i] = cert
 	}
 
-	daneconfig.Certchains, err = verifyChain(certs, tlsconfig, true)
+	daneconfig.VerifiedChains, err = verifyChain(certs, tlsconfig, true)
 	if err == nil {
 		daneconfig.Okpkix = true
 	}
@@ -80,7 +80,7 @@ func verifyServer(rawCerts [][]byte,
 	}
 
 	if !daneconfig.Okpkix {
-		daneconfig.Certchains, err = verifyChain(certs, tlsconfig, false)
+		daneconfig.VerifiedChains, err = verifyChain(certs, tlsconfig, false)
 		if err != nil {
 			return fmt.Errorf("DANE TLS error: cert chain: %s", err.Error())
 		}
@@ -105,6 +105,9 @@ func GetTLSconfig(daneconfig *Config) *tls.Config {
 	config := new(tls.Config)
 	config.ServerName = daneconfig.Server.Name
 	config.InsecureSkipVerify = true
+	if daneconfig.NoVerify {
+		return config
+	}
 	config.VerifyPeerCertificate = func(rawCerts [][]byte,
 		verifiedChains [][]*x509.Certificate) error {
 		return verifyServer(rawCerts, verifiedChains, config, daneconfig)

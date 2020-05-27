@@ -141,6 +141,10 @@ func GetAddresses(resolver *Resolver, hostname string, secure bool) ([]net.IP, e
 	var q *Query
 	var rrTypes []uint16
 
+	if resolver == nil {
+		return nil, fmt.Errorf("Nil resolver object supplied")
+	}
+
 	if resolver.IPv6 {
 		rrTypes = append(rrTypes, dns.TypeAAAA)
 	}
@@ -186,6 +190,10 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 
 	var q *Query
 	var tr *TLSArdata
+
+	if resolver == nil {
+		return nil, fmt.Errorf("Nil resolver object supplied")
+	}
 
 	qname := fmt.Sprintf("_%d._tcp.%s", port, hostname)
 
