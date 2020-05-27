@@ -117,7 +117,7 @@ func GetTLSconfig(daneconfig *Config) *tls.Config {
 
 //
 // TLShandshake takes a network connection and a TLS Config structure,
-// negotatiates TLS on the connection and returns a TLS connection on
+// negotiates TLS on the connection and returns a TLS connection on
 // success. It sets error to non-nil on failure.
 //
 func TLShandshake(conn net.Conn, config *tls.Config) (*tls.Conn, error) {

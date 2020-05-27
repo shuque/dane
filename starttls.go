@@ -11,8 +11,8 @@ import (
 const bufsize = 2048
 
 //
-// DoXMPP -
-// See RFC 6120, Section 5.4.2 for details
+// DoXMPP connects to an XNPP server, issue a STARTTLS command, negotiates
+// TLS and returns a TLS connection. See RFC 6120, Section 5.4.2 for details.
 //
 func DoXMPP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
@@ -89,7 +89,8 @@ func DoXMPP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Con
 }
 
 //
-// DoPOP3 -
+// DoPOP3 connects to a POP3 server, sends the STLS command, negotiates TLS,
+// and returns a TLS connection.
 //
 func DoPOP3(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
@@ -132,7 +133,8 @@ func DoPOP3(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Con
 }
 
 //
-// DoIMAP -
+// DoIMAP connects to an IMAP server, issues a STARTTLS command, negotiates
+// TLS, and returns a TLS connection.
 //
 func DoIMAP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
@@ -200,7 +202,9 @@ func DoIMAP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Con
 }
 
 //
-// parseSMTPline -
+// parseSMTPline parses an SMTP protocol line, and returns the replycode,
+// command string, whether the response is done (for a multi-line response),
+// and an error (on failure).
 //
 func parseSMTPline(line string) (int, string, bool, error) {
 
@@ -218,7 +222,8 @@ func parseSMTPline(line string) (int, string, bool, error) {
 }
 
 //
-// DoSMTP -
+// DoSMTP connects to an SMTP server, checks for STARTTLS support, negotiates
+// TLS, and returns a TLS connection.
 //
 func DoSMTP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 

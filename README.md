@@ -35,4 +35,14 @@ mode TLSA records, unless the SMTPAnyMode option is set.
 STARTLS is supported for SMTP, POP3, IMAP, and XMPP by setting the
 Appname and Servicename methods on the Config structure.
 
+### Example code
+
 Example code that uses this library can be found in example_test.go.
+A detailed example program that uses the library can be found at
+https://github.com/shuque/gotls
+
+### Documentation
+
+Formatted documentation for this module can be found at:
+
+https://pkg.go.dev/github.com/shuque/dane?tab=doc
