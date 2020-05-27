@@ -22,12 +22,16 @@ type Config struct {
 }
 
 //
-// NewConfig initializes and returns a new dane Config structure.
+// NewConfig initializes and returns a new dane Config structure
+// for the given server name, ip address and port. The IP address
+// can be specified either as a string or a net.IP structure. The
+// initialized config does DANE authentication with fallback to PKIX.
 //
-func NewConfig() *Config {
+func NewConfig(hostname string, ip interface{}, port int) *Config {
 	c := new(Config)
 	c.DANE = true
 	c.PKIX = true
+	c.Server = NewServer(hostname, ip, port)
 	return c
 }
 

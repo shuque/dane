@@ -141,11 +141,10 @@ func DialTLS(daneconfig *Config) (*tls.Conn, error) {
 	var err error
 	var conn *tls.Conn
 
-	server := daneconfig.Server
-
 	config := GetTLSconfig(daneconfig)
 	dialer := getDialer(defaultTCPTimeout)
-	conn, err = tls.DialWithDialer(dialer, "tcp", server.Address(), config)
+	conn, err = tls.DialWithDialer(dialer, "tcp",
+		daneconfig.Server.Address(), config)
 	return conn, err
 }
 
@@ -165,9 +164,7 @@ func DialStartTLS(daneconfig *Config) (*tls.Conn, error) {
 	var err error
 	var conn *tls.Conn
 
-	server := daneconfig.Server
-
 	config := GetTLSconfig(daneconfig)
-	conn, err = StartTLS(server, config, daneconfig)
+	conn, err = StartTLS(config, daneconfig)
 	return conn, err
 }

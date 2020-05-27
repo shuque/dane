@@ -8,7 +8,9 @@ import (
 //
 // ConnectByName takes a hostname and port, resolves the addresses for
 // the hostname (IPv6 followed by IPv4), and then attempts to connect to
-// them and establish TLS. It returns a TLS connection and dane config for
+// them and establish TLS using DANE or PKIX authentication - DANE is
+// attempted if there are secure TLSA records, otherwise it falls back to
+// PKIX authentication. It returns a TLS connection and dane config for
 // the first address that succeeds.
 //
 // Uses a default DANE configuration. For a custom DANE configuration,
@@ -40,13 +42,12 @@ func ConnectByName(hostname string, port int) (*tls.Conn, *Config, error) {
 
 	for _, ip := range iplist {
 
-		server := NewServer(hostname, ip, port)
-		config := NewConfig()
-		config.SetServer(server)
+		config := NewConfig(hostname, ip, port)
 		config.SetTLSA(tlsa)
 		conn, err = DialTLS(config)
 		if err != nil {
-			fmt.Printf("Connection failed to %s: %s\n", server.Address(), err.Error())
+			fmt.Printf("Connection failed to %s: %s\n", config.Server.Address(),
+				err.Error())
 			continue
 		}
 		return conn, config, err

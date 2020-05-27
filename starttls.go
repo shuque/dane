@@ -14,13 +14,14 @@ const bufsize = 2048
 // DoXMPP connects to an XNPP server, issue a STARTTLS command, negotiates
 // TLS and returns a TLS connection. See RFC 6120, Section 5.4.2 for details.
 //
-func DoXMPP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
+func DoXMPP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	var servicename, rolename string
 	var line, transcript string
 
 	buf := make([]byte, bufsize)
 
+	server := daneconfig.Server
 	conn, err := getTCPconn(server.Ipaddr, server.Port)
 	if err != nil {
 		return nil, err
@@ -92,10 +93,11 @@ func DoXMPP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Con
 // DoPOP3 connects to a POP3 server, sends the STLS command, negotiates TLS,
 // and returns a TLS connection.
 //
-func DoPOP3(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
+func DoPOP3(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	var line, transcript string
 
+	server := daneconfig.Server
 	conn, err := getTCPconn(server.Ipaddr, server.Port)
 	if err != nil {
 		return nil, err
@@ -136,11 +138,12 @@ func DoPOP3(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Con
 // DoIMAP connects to an IMAP server, issues a STARTTLS command, negotiates
 // TLS, and returns a TLS connection.
 //
-func DoIMAP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
+func DoIMAP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	var gotSTARTTLS bool
 	var line, transcript string
 
+	server := daneconfig.Server
 	conn, err := getTCPconn(server.Ipaddr, server.Port)
 	if err != nil {
 		return nil, err
@@ -225,12 +228,13 @@ func parseSMTPline(line string) (int, string, bool, error) {
 // DoSMTP connects to an SMTP server, checks for STARTTLS support, negotiates
 // TLS, and returns a TLS connection.
 //
-func DoSMTP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
+func DoSMTP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	var replycode int
 	var line, rest, transcript string
 	var responseDone, gotSTARTTLS bool
 
+	server := daneconfig.Server
 	conn, err := getTCPconn(server.Ipaddr, server.Port)
 	if err != nil {
 		return nil, err
@@ -316,17 +320,17 @@ func DoSMTP(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Con
 //
 // StartTLS -
 //
-func StartTLS(server *Server, tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
+func StartTLS(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	switch daneconfig.Appname {
 	case "smtp":
-		return DoSMTP(server, tlsconfig, daneconfig)
+		return DoSMTP(tlsconfig, daneconfig)
 	case "imap":
-		return DoIMAP(server, tlsconfig, daneconfig)
+		return DoIMAP(tlsconfig, daneconfig)
 	case "pop3":
-		return DoPOP3(server, tlsconfig, daneconfig)
+		return DoPOP3(tlsconfig, daneconfig)
 	case "xmpp-client", "xmpp-server":
-		return DoXMPP(server, tlsconfig, daneconfig)
+		return DoXMPP(tlsconfig, daneconfig)
 	default:
 		return nil, fmt.Errorf("Unknown STARTTLS application: %s", daneconfig.Appname)
 	}

@@ -47,10 +47,8 @@ func TestDialTLS(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("## %s %s %d", tc.host, tc.ip, tc.port), func(t *testing.T) {
 			defer fmt.Println("")
-			daneconfig := NewConfig()
-			server := NewServer(tc.host, tc.ip, tc.port)
-			daneconfig.SetServer(server)
-
+			daneconfig := NewConfig(tc.host, tc.ip, tc.port)
+			server := daneconfig.Server
 			fmt.Printf("## TLS: %s\n", server)
 			tlsa, err := GetTLSA(tc.resolver, server.Name, server.Port)
 			if err != nil {

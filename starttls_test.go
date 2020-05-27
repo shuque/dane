@@ -25,16 +25,16 @@ func TestDialStartTLS(t *testing.T) {
 		{"mail.example.com", "50.116.63.23", 25, "blah", "", resolver1, false},
 		{"locutus.example.com", "104.236.200.251", 143, "imap", "", resolver1, true},
 		{"locutus.example.com", "104.236.200.251", 110, "pop3", "", resolver1, true},
+		//{"truck.team1664.org", "109.190.84.43", 5222, "xmpp-client", "team1664.org", resolver1, true},
 	}
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("## %s %s %d", tc.host, tc.ip, tc.port), func(t *testing.T) {
 			defer fmt.Println("")
-			daneconfig := NewConfig()
-			server := NewServer(tc.host, tc.ip, tc.port)
-			daneconfig.SetServer(server)
+			daneconfig := NewConfig(tc.host, tc.ip, tc.port)
 			daneconfig.SetAppName(tc.appname)
 			daneconfig.SetServiceName(tc.sname)
 			daneconfig.NoPKIXfallback()
+			server := daneconfig.Server
 
 			fmt.Printf("## STARTTLS: %s %s %s\n", server, tc.appname, tc.sname)
 			tlsa, err := GetTLSA(tc.resolver, server.Name, server.Port)

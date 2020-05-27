@@ -12,7 +12,6 @@ import (
 
 func Example() {
 	var daneconfig *Config
-	var server *Server
 
 	resolver := NewResolver(net.ParseIP("8.8.8.8"), 53)
 	hostname := "www.example.com"
@@ -31,9 +30,7 @@ func Example() {
 		log.Fatalf("Got less than expected addresses.")
 	}
 	for _, ip := range iplist {
-		server = NewServer(hostname, ip, 443)
-		daneconfig = NewConfig()
-		daneconfig.SetServer(server)
+		daneconfig = NewConfig(hostname, ip, 443)
 		daneconfig.SetTLSA(tlsa)
 		conn, err := DialTLS(daneconfig)
 		if daneconfig.TLSA != nil {
