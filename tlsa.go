@@ -10,6 +10,16 @@ import (
 )
 
 //
+// DANE Usage modes
+//
+const (
+	PkixTA = 0
+	PkixEE = 1
+	DaneTA = 2
+	DaneEE = 3
+)
+
+//
 // TLSArdata - TLSA rdata structure
 //
 type TLSArdata struct {
@@ -134,7 +144,7 @@ func ChainMatchesTLSA(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Conf
 
 	tr.Checked = true
 	switch tr.Usage {
-	case 1, 3:
+	case PkixEE, DaneEE:
 		hash, err = ComputeTLSA(tr.Selector, tr.Mtype, chain[0])
 		if err != nil {
 			tr.Ok = false
@@ -142,7 +152,7 @@ func ChainMatchesTLSA(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Conf
 			break
 		}
 		if hash == tr.Data {
-			if tr.Usage == 3 || daneconfig.Okpkix {
+			if tr.Usage == DaneEE || daneconfig.Okpkix {
 				Authenticated = true
 				tr.Ok = true
 				tr.Message = "matched EE certificate"
@@ -154,7 +164,7 @@ func ChainMatchesTLSA(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Conf
 			tr.Ok = false
 			tr.Message = "did not match EE certificate"
 		}
-	case 0, 2:
+	case PkixTA, DaneTA:
 		for i, cert := range chain[1:] {
 			hash, err = ComputeTLSA(tr.Selector, tr.Mtype, cert)
 			if err != nil {
@@ -166,7 +176,7 @@ func ChainMatchesTLSA(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Conf
 				continue
 			}
 			hashMatched = true
-			if tr.Usage == 2 || daneconfig.Okpkix {
+			if tr.Usage == DaneTA || daneconfig.Okpkix {
 				Authenticated = true
 				tr.Ok = true
 				tr.Message = fmt.Sprintf("matched TA certificate at depth %d", i+1)
@@ -215,7 +225,7 @@ func smtpUsageOK(tr *TLSArdata, daneconfig *Config) bool {
 //
 func AuthenticateSingle(chain []*x509.Certificate, daneconfig *Config) bool {
 
-	var Authenticated, ok bool
+	var Authenticated bool
 	var err error
 
 	for _, tr := range daneconfig.TLSA.Rdata {
@@ -225,11 +235,10 @@ func AuthenticateSingle(chain []*x509.Certificate, daneconfig *Config) bool {
 			tr.Message = "invalid usage mode for smtp"
 			continue
 		}
-		ok = ChainMatchesTLSA(chain, tr, daneconfig)
-		if !ok {
+		if !ChainMatchesTLSA(chain, tr, daneconfig) {
 			continue
 		}
-		if tr.Usage == 3 && !daneconfig.DaneEEname {
+		if tr.Usage == DaneEE && !daneconfig.DaneEEname {
 			Authenticated = true
 			continue
 		}
@@ -254,11 +263,8 @@ func AuthenticateSingle(chain []*x509.Certificate, daneconfig *Config) bool {
 //
 func AuthenticateAll(daneconfig *Config) bool {
 
-	var ok bool
-
 	for _, chain := range daneconfig.VerifiedChains {
-		ok = AuthenticateSingle(chain, daneconfig)
-		if ok {
+		if AuthenticateSingle(chain, daneconfig) {
 			return true
 		}
 	}

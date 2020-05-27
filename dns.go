@@ -159,7 +159,7 @@ func GetAddresses(resolver *Resolver, hostname string, secure bool) ([]net.IP, e
 			return nil, err
 		}
 		if !responseOK(response) {
-			return nil, fmt.Errorf("Address lookup response rcode: %d", response.MsgHdr.Rcode)
+			return nil, fmt.Errorf("Address lookup rcode: %d", response.MsgHdr.Rcode)
 		}
 		if response.MsgHdr.Rcode == dns.RcodeNameError {
 			return nil, fmt.Errorf("%s: Non-existent domain name", hostname)
@@ -220,29 +220,29 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 		return nil, fmt.Errorf("%s: Non-existent domain name", qname)
 	}
 
-	if len(response.Answer) == 0 {
+	tlsa := new(TLSAinfo)
+	tlsa.Qname = dns.Fqdn(qname)
+
+	for _, rr := range response.Answer {
+		if tlsarr, ok := rr.(*dns.TLSA); ok {
+			if tlsarr.Hdr.Name != tlsa.Qname {
+				tlsa.Alias = append(tlsa.Alias, tlsarr.Hdr.Name)
+			}
+			tr = new(TLSArdata)
+			tr.Usage = tlsarr.Usage
+			tr.Selector = tlsarr.Selector
+			tr.Mtype = tlsarr.MatchingType
+			tr.Data = tlsarr.Certificate
+			tlsa.Rdata = append(tlsa.Rdata, tr)
+		}
+	}
+
+	if len(tlsa.Rdata) == 0 {
 		if resolver.Pkixfallback {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("ERROR: No TLSA records found")
 	}
 
-	t := new(TLSAinfo)
-	t.Qname = dns.Fqdn(qname)
-
-	for _, rr := range response.Answer {
-		if tlsa, ok := rr.(*dns.TLSA); ok {
-			if tlsa.Hdr.Name != t.Qname {
-				t.Alias = append(t.Alias, tlsa.Hdr.Name)
-			}
-			tr = new(TLSArdata)
-			tr.Usage = tlsa.Usage
-			tr.Selector = tlsa.Selector
-			tr.Mtype = tlsa.MatchingType
-			tr.Data = tlsa.Certificate
-			t.Rdata = append(t.Rdata, tr)
-		}
-	}
-
-	return t, err
+	return tlsa, err
 }
