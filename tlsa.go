@@ -10,26 +10,26 @@ import (
 )
 
 //
-// DANE Usage modes
+// DANE Certificte Usage modes
 //
 const (
-	PkixTA = 0
-	PkixEE = 1
-	DaneTA = 2
-	DaneEE = 3
+	PkixTA = 0 // Certificate Authority Constraint
+	PkixEE = 1 // Service Certificate Constraint
+	DaneTA = 2 // Trust Anchor Assertion
+	DaneEE = 3 // Domain Issued Certificate
 )
 
 //
 // TLSArdata - TLSA rdata structure
 //
 type TLSArdata struct {
-	Usage    uint8
-	Selector uint8
-	Mtype    uint8
-	Data     string
-	Checked  bool
-	Ok       bool
-	Message  string
+	Usage    uint8  // Certificate Usage
+	Selector uint8  // Selector: 0: full cert, 1: subject public key
+	Mtype    uint8  // Matching Type: 0 full content, 1: SHA256, 2: SHA512
+	Data     string // Certificate association Data field (hex encoding)
+	Checked  bool   // Have we tried to match this TLSA rdata?
+	Ok       bool   // Did it match?
+	Message  string // Diagnostic message for matching
 }
 
 //

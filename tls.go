@@ -25,14 +25,12 @@ func verifyChain(certs []*x509.Certificate, config *tls.Config,
 	if root {
 		opts.Roots = config.RootCAs
 		opts.Intermediates = x509.NewCertPool()
-
 		for _, cert := range certs[1:] {
 			opts.Intermediates.AddCert(cert)
 		}
 		verifiedChains, err = certs[0].Verify(opts)
 	} else {
 		opts.Roots = x509.NewCertPool()
-
 		chainlength := len(certs)
 		last := certs[chainlength-1]
 		opts.Roots.AddCert(last)

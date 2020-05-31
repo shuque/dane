@@ -41,7 +41,6 @@ func ConnectByName(hostname string, port int) (*tls.Conn, *Config, error) {
 	}
 
 	for _, ip := range iplist {
-
 		config := NewConfig(hostname, ip, port)
 		config.SetTLSA(tlsa)
 		conn, err = DialTLS(config)

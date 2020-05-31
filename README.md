@@ -38,7 +38,7 @@ Appname and Servicename methods on the Config structure.
 ### Example code
 
 Example code that uses this library can be found in example_test.go.
-A detailed example program that uses the library can be found at
+A detailed diagnostic tool that uses the library can be found at
 https://github.com/shuque/gotls
 
 ### Documentation

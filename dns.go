@@ -217,7 +217,10 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 	}
 
 	if response.MsgHdr.Rcode == dns.RcodeNameError {
-		return nil, fmt.Errorf("%s: Non-existent domain name", qname)
+		if resolver.Pkixfallback {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("ERROR: %s: Non-exist domain name", hostname)
 	}
 
 	tlsa := new(TLSAinfo)
