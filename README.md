@@ -71,13 +71,11 @@ for _, ip := range iplist {
 	daneconfig := dane.NewConfig(hostname, ip, 443)
 	daneconfig.SetTLSA(tlsa)
 	conn, err := dane.DialTLS(daneconfig)
-	if daneconfig.TLSA != nil {
-		daneconfig.TLSA.Results()
-	}
 	if err != nil {
 		fmt.Printf("Result: FAILED: %s\n", err.Error())
 		continue
 	}
+    // do some stuff
 	conn.Close()
 	if daneconfig.Okdane {
 		fmt.Printf("Result: DANE OK\n")
