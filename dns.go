@@ -63,17 +63,19 @@ func sendQueryUDP(query *Query, resolver *Resolver) (*dns.Msg, error) {
 
 	retries := resolver.Retries
 	for retries > 0 {
-		response, _, err = c.Exchange(m, resolver.Address())
-		if err == nil {
-			break
-		}
-		if nerr, ok := err.(net.Error); ok && !nerr.Timeout() {
-			break
+		for _, server := range resolver.Servers {
+			response, _, err = c.Exchange(m, server.Address())
+			if err == nil {
+				return response, err
+			}
+			if nerr, ok := err.(net.Error); ok && !nerr.Timeout() {
+				continue
+			}
 		}
 		retries--
 	}
 
-	return response, err
+	return nil, err
 }
 
 //
@@ -90,7 +92,12 @@ func sendQueryTCP(query *Query, resolver *Resolver) (*dns.Msg, error) {
 	c.Net = "tcp"
 	c.Timeout = resolver.Timeout
 
-	response, _, err = c.Exchange(m, resolver.Address())
+	for _, server := range resolver.Servers {
+		response, _, err = c.Exchange(m, server.Address())
+		if err == nil {
+			return response, err
+		}
+	}
 	return response, err
 
 }
@@ -141,10 +148,6 @@ func GetAddresses(resolver *Resolver, hostname string, secure bool) ([]net.IP, e
 	var q *Query
 	var rrTypes []uint16
 
-	if resolver == nil {
-		return nil, fmt.Errorf("Nil resolver object supplied")
-	}
-
 	if resolver.IPv6 {
 		rrTypes = append(rrTypes, dns.TypeAAAA)
 	}
@@ -183,17 +186,41 @@ func GetAddresses(resolver *Resolver, hostname string, secure bool) ([]net.IP, e
 }
 
 //
+// Message2TSLAinfo returns a populated TLSAinfo structure from the
+// contents of a given dns message that contains a response to a
+// TLSA query. The qname parameter provides the expected TLSA query
+// name string.
+//
+func Message2TSLAinfo(qname string, message *dns.Msg) *TLSAinfo {
+
+	var tr *TLSArdata
+
+	tlsa := new(TLSAinfo)
+	tlsa.Qname = dns.Fqdn(qname)
+
+	for _, rr := range message.Answer {
+		if tlsarr, ok := rr.(*dns.TLSA); ok {
+			if tlsarr.Hdr.Name != tlsa.Qname {
+				tlsa.Alias = append(tlsa.Alias, tlsarr.Hdr.Name)
+			}
+			tr = new(TLSArdata)
+			tr.Usage = tlsarr.Usage
+			tr.Selector = tlsarr.Selector
+			tr.Mtype = tlsarr.MatchingType
+			tr.Data = tlsarr.Certificate
+			tlsa.Rdata = append(tlsa.Rdata, tr)
+		}
+	}
+	return tlsa
+}
+
+//
 // GetTLSA returns the DNS TLSA RRset information for the given hostname,
 // port and resolver parameters.
 //
 func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 
 	var q *Query
-	var tr *TLSArdata
-
-	if resolver == nil {
-		return nil, fmt.Errorf("Nil resolver object supplied")
-	}
 
 	qname := fmt.Sprintf("_%d._tcp.%s", port, hostname)
 
@@ -223,22 +250,7 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 		return nil, fmt.Errorf("ERROR: %s: Non-exist domain name", hostname)
 	}
 
-	tlsa := new(TLSAinfo)
-	tlsa.Qname = dns.Fqdn(qname)
-
-	for _, rr := range response.Answer {
-		if tlsarr, ok := rr.(*dns.TLSA); ok {
-			if tlsarr.Hdr.Name != tlsa.Qname {
-				tlsa.Alias = append(tlsa.Alias, tlsarr.Hdr.Name)
-			}
-			tr = new(TLSArdata)
-			tr.Usage = tlsarr.Usage
-			tr.Selector = tlsarr.Selector
-			tr.Mtype = tlsarr.MatchingType
-			tr.Data = tlsarr.Certificate
-			tlsa.Rdata = append(tlsa.Rdata, tr)
-		}
-	}
+	tlsa := Message2TSLAinfo(q.Name, response)
 
 	if len(tlsa.Rdata) == 0 {
 		if resolver.Pkixfallback {

@@ -6,7 +6,7 @@ import (
 )
 
 //
-// Server contains information about a single TLS server: hostname,
+// Server contains information about a single server: hostname,
 // IP address (net.IP) and port number.
 //
 type Server struct {

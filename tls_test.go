@@ -18,7 +18,8 @@ var resolver1, resolver2 *Resolver
 
 func TestMain(m *testing.M) {
 	// validating resolver
-	resolver1 = NewResolver(net.ParseIP("8.8.8.8"), 53)
+	servers1 := []*Server{NewServer("", "8.8.8.8", 53)}
+	resolver1 = NewResolver(servers1)
 	// non-validating resolver
 	resolver2, _ = GetResolver("")
 	os.Exit(m.Run())

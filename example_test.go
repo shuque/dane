@@ -13,7 +13,8 @@ import (
 func Example() {
 	var daneconfig *Config
 
-	resolver := NewResolver(net.ParseIP("8.8.8.8"), 53)
+	servers := []*Server{NewServer("", "8.8.8.8", 53)}
+	resolver := NewResolver(servers)
 	hostname := "www.example.com"
 	tlsa, err := GetTLSA(resolver, hostname, 443)
 	if err != nil {

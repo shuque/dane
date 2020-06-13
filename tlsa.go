@@ -25,7 +25,7 @@ const (
 type TLSArdata struct {
 	Usage    uint8  // Certificate Usage
 	Selector uint8  // Selector: 0: full cert, 1: subject public key
-	Mtype    uint8  // Matching Type: 0 full content, 1: SHA256, 2: SHA512
+	Mtype    uint8  // Matching Type: 0: full content, 1: SHA256, 2: SHA512
 	Data     string // Certificate association Data field (hex encoding)
 	Checked  bool   // Have we tried to match this TLSA rdata?
 	Ok       bool   // Did it match?

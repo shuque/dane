@@ -11,9 +11,9 @@ import (
 // DNS resolver defaults
 //
 var (
-	defaultDNSTimeout                 = 3
+	defaultDNSTimeout                 = 2
 	defaultDNSRetries                 = 3
-	defaultTCPTimeout                 = 4
+	defaultTCPTimeout                 = 3
 	defaultResolverPort               = 53
 	defaultResolvConf                 = "/etc/resolv.conf"
 	timeoutTCP          time.Duration = time.Second * 5
@@ -25,8 +25,7 @@ var (
 // Resolver contains a DNS resolver configuration
 //
 type Resolver struct {
-	Ipaddr       net.IP        // resolver IP address
-	Port         int           // resolver port number
+	Servers      []*Server     // list of resolvers
 	Rdflag       bool          // set RD flag
 	Adflag       bool          // set AD flag
 	Cdflag       bool          // set CD flag
@@ -42,10 +41,9 @@ type Resolver struct {
 // NewResolver initializes a new Resolver structure from a given IP
 // address (net.IP) and port number.
 //
-func NewResolver(ip net.IP, port int) *Resolver {
+func NewResolver(servers []*Server) *Resolver {
 	r := new(Resolver)
-	r.Ipaddr = ip
-	r.Port = port
+	r.Servers = servers
 	r.Rdflag = true
 	r.Adflag = true
 	r.Timeout = time.Second * time.Duration(defaultDNSTimeout)
@@ -55,13 +53,6 @@ func NewResolver(ip net.IP, port int) *Resolver {
 	r.IPv4 = true
 	r.Pkixfallback = true
 	return r
-}
-
-//
-// Address returns an address string for the Resolver.
-//
-func (r *Resolver) Address() string {
-	return addressString(r.Ipaddr, r.Port)
 }
 
 //
@@ -75,14 +66,20 @@ func GetResolver(resconf string) (*Resolver, error) {
 
 	var ip net.IP
 	var resolver *Resolver
+	var servers []*Server
 
 	if resconf == "" {
 		resconf = defaultResolvConf
 	}
 	c, err := dns.ClientConfigFromFile(resconf)
-	if err == nil {
-		ip = net.ParseIP(c.Servers[0])
-		resolver = NewResolver(ip, defaultResolverPort)
+	if err != nil {
+		return nil, err
 	}
+
+	for _, s := range c.Servers {
+		ip = net.ParseIP(s)
+		servers = append(servers, NewServer("", ip, defaultResolverPort))
+	}
+	resolver = NewResolver(servers)
 	return resolver, err
 }
