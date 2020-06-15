@@ -43,12 +43,14 @@ func (c *Config) SetServer(server *Server) {
 }
 
 //
-// SetTLSA sets the TLSAinfo component of Config.
+// SetTLSA sets the TLSAinfo component of Config. A copy of the TLSAinfo
+// structure is made, to permit concurrent use of the structure that may
+// independently change the (reset) checking bits.
 //
 func (c *Config) SetTLSA(tlsa *TLSAinfo) {
 	if tlsa != nil {
-		tlsa.Uncheck()
-		c.TLSA = tlsa
+		c.TLSA = tlsa.Copy()
+		c.TLSA.Uncheck()
 	}
 }
 

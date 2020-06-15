@@ -50,6 +50,26 @@ type TLSAinfo struct {
 }
 
 //
+// Copy makes a deep copy of the TLSAinfo structure
+//
+func (t *TLSAinfo) Copy() *TLSAinfo {
+	c := new(TLSAinfo)
+	c.Qname = t.Qname
+	for _, a := range t.Alias {
+		c.Alias = append(c.Alias, a)
+	}
+	for _, r := range t.Rdata {
+		tr := new(TLSArdata)
+		tr.Usage = r.Usage
+		tr.Selector = r.Selector
+		tr.Mtype = r.Mtype
+		tr.Data = r.Data
+		c.Rdata = append(c.Rdata, tr)
+	}
+	return c
+}
+
+//
 // Uncheck unchecks result fields of all the TLSA rdata structs.
 //
 func (t *TLSAinfo) Uncheck() {
