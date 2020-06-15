@@ -20,7 +20,8 @@ The package includes functions that will perform secure lookup of TLSA
 records and address records via a validating DNS resolver: GetTLSA() and
 GetAddresses(). Alternatively, if the calling application has obtained
 the TLSA record data by itself, it can populate the TLSAinfo structure
-defined in the library before calling the DANE TLS connection functions.
+defined in the library before calling the DANE TLS connection functions,
+DialTLSA() or DialStartTLS().
 
 The use of GetTLSA() and GetAddresses() requires the use of a validating
 DNS resolver, that sets the AD bit on authenticated responses. The
@@ -39,13 +40,18 @@ validate, this package will fallback to normal PKIX authentication.
 Calling NoPKIXverify() on the Config structure will prevent this and
 force a requirement for DANE authentication.
 
-Per current spec, this library does not perform certificate hostname
-checks for DANE-EE mode TLSA records, but this can overridden with the
-DaneEEname config option. For SMTP STARTTLS the library ignores PKIX-*
-mode TLSA records, unless the SMTPAnyMode option is set.
+Per current spec (RFC 7671, Section 5.1), this library does not perform
+certificate name checks for DANE-EE mode TLSA records, but this can be
+overridden with the DaneEEname option. For Web applications it is sensible
+to set the DaneEEname option to protect against Unknown Keyshare Attacks as
+described in https://tools.ietf.org/html/draft-barnes-dane-uks-00 .
 
-STARTLS is supported for SMTP, POP3, IMAP, and XMPP by setting the
-Appname and Servicename methods on the Config structure.
+Also, per RFC 7672, Section 3.1.3, for SMTP STARTTLS the library ignores
+PKIX-* mode TLSA records, since they are not recommended for use. This can
+also be overridden by setting the SMTPAnyMode option.
+
+STARTLS is supported for SMTP, POP3, IMAP, and XMPP applications by setting
+the Appname and Servicename methods on the Config structure.
 
 ### Example code
 
