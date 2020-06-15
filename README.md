@@ -8,7 +8,7 @@ Go library for DANE authentication
 
 ### Description
 
-dane v0.1.5
+dane v0.1.6
 
 Package dane provides a set of functions to perform DANE authentication
 of a TLS server, with fall back to PKIX authentication if the server
