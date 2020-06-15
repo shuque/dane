@@ -1,4 +1,4 @@
-package dane
+package dane_test
 
 /*
  * An example program.
@@ -7,23 +7,25 @@ package dane
 import (
 	"fmt"
 	"log"
-	"net"
+
+	"github.com/shuque/dane"
 )
 
 func Example() {
-	var daneconfig *Config
 
-	servers := []*Server{NewServer("", "8.8.8.8", 53)}
-	resolver := NewResolver(servers)
+	var daneconfig *dane.Config
+
+	servers := []*dane.Server{dane.NewServer("", "8.8.8.8", 53)}
+	resolver := dane.NewResolver(servers)
 	hostname := "www.example.com"
-	tlsa, err := GetTLSA(resolver, hostname, 443)
+	tlsa, err := dane.GetTLSA(resolver, hostname, 443)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
 	if tlsa == nil {
 		log.Fatalf("No TLSA records found, where expected.")
 	}
-	iplist, err := GetAddresses(resolver1, hostname, true)
+	iplist, err := dane.GetAddresses(resolver, hostname, true)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}
@@ -31,9 +33,9 @@ func Example() {
 		log.Fatalf("Got less than expected addresses.")
 	}
 	for _, ip := range iplist {
-		daneconfig = NewConfig(hostname, ip, 443)
+		daneconfig = dane.NewConfig(hostname, ip, 443)
 		daneconfig.SetTLSA(tlsa)
-		conn, err := DialTLS(daneconfig)
+		conn, err := dane.DialTLS(daneconfig)
 		if daneconfig.TLSA != nil {
 			daneconfig.TLSA.Results()
 		}
