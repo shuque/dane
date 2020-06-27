@@ -1,28 +1,38 @@
 //
 // Package dane provides a set of functions to perform DANE authentication
-// of a TLS server, with fall back to PKIX authentication if the server
-// does not advertise any signed DANE TLSA records. DANE is a protocol
-// that employs DNSSEC signed records ("TLSA") to authenticate X.509
-// certificates used in TLS and other protocols.
+// of a TLS server, with fall back to PKIX authentication if no DANE TLSA
+// records exist for the server. DANE is a protocol that employs DNSSEC signed
+// records ("TLSA") to authenticate X.509 certificates used in TLS and other
+// protocols. See RFC 6698 for details.
+//
+// The dane.Config structure holds all the configured input parameters
+// for DANE authentication, including the server's name, address & port,
+// and the TLSA record set data. A new dane.Config structure has to be
+// instantiated for each DANE TLS server that needs to be authenticated.
 //
 // The package includes functions that will perform secure lookup of TLSA
 // records and address records via a validating DNS resolver: GetTLSA() and
 // GetAddresses(). Alternatively, if the calling application has obtained
-// the TLSA record data by itself, it can populate the TLSAinfo structure
-// defined in the library before calling the DANE TLS connection functions,
-// DialTLSA() or DialStartTLS().
+// the TLSA record data by itself, it can populate the dane.Config's TLSA
+// structure itself.
 //
 // The use of GetTLSA() and GetAddresses() requires the use of a validating
-// DNS resolver, that sets the AD bit on authenticated responses. The
+// DNS resolver that sets the AD bit on authenticated responses. The
 // GetResolver() function in this package, by default uses the set of resolvers
 // defined in /etc/resolv.conf. This can be overridden by supplying a custom
 // resolv.conf file, or by directly initializing a Resolver structure
-// and placing it in the dane.Config structure. To be completely secure,
-// it is important that system the code is running on has a secure connection
-// to the validating resolver. (A future version of this library may perform
-// stub DNSSEC validation itself, in which case it would only need to be able
-// to communicate with a DNSSEC aware resolver, and not require a secure
-// transport connection to it.)
+// and placing it in the dane.Config. To be secure, it is important that system
+// the code is running on has a secure connection to the validating resolver.
+// (A future version of this library may perform stub DNSSEC validation itself,
+// in which case it would only need to be able to communicate with a DNSSEC aware
+// resolver, and not require a secure transport connection to it.)
+//
+// The functions DialTLS() or DialStartTLS() take a dane.Config instance,
+// connect to the server, perform DANE authentication, and return a TLS
+// connection handle for subsequent use. DialStartTLS() will additionally
+// perform an application specific STARTTLS negotiation first. STARTTLS is
+// supported for the SMTP, POP3, IMAP, and XMPP applications by calling the
+// Appname and Servicename methods on the Config structure.
 //
 // If no secure DANE TLSA records are found, or if the resolver doesn't
 // validate, this package will fallback to normal PKIX authentication.
@@ -39,15 +49,17 @@
 // PKIX-* mode TLSA records, since they are not recommended for use. This can
 // also be overridden by setting the SMTPAnyMode option.
 //
-// STARTLS is supported for SMTP, POP3, IMAP, and XMPP applications by setting
-// the Appname and Servicename methods on the Config structure.
+// After calling DialTLSA() or DialStartTLSA(), the dane.Config structure
+// is populated with additional diagnostic information, such as DANE and
+// PKIX authentication status, the verified certificate chains, and the
+// verification status of each DANE TLSA record processed.
 //
 package dane
 
 import "fmt"
 
 // Version - current version number
-var Version = VersionStruct{0, 1, 6}
+var Version = VersionStruct{0, 1, 7}
 
 // VersionStruct - version structure
 type VersionStruct struct {
