@@ -65,6 +65,7 @@ func verifyServer(rawCerts [][]byte,
 		certs[i] = cert
 	}
 
+	daneconfig.PeerChain = certs
 	daneconfig.VerifiedChains, err = verifyChain(certs, tlsconfig, true)
 	if err == nil {
 		daneconfig.Okpkix = true

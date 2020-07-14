@@ -18,6 +18,7 @@ type Config struct {
 	Okdane         bool                  // DANE authentication result
 	Okpkix         bool                  // PKIX authentication result
 	TLSA           *TLSAinfo             // TLSA RRset information
+	PeerChain      []*x509.Certificate   // Peer Certificate Chain
 	VerifiedChains [][]*x509.Certificate // Verified server Certificate Chains
 }
 
