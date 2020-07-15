@@ -1,6 +1,8 @@
 package dane
 
-import "crypto/x509"
+import (
+	"crypto/x509"
+)
 
 //
 // Config contains a DANE configuration for a single Server.

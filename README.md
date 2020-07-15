@@ -14,7 +14,7 @@ https://pkg.go.dev/github.com/shuque/dane?tab=doc
 
 ### Description
 
-dane v0.1.7
+dane v0.1.8
 
 Package dane provides a set of functions to perform DANE authentication
 of a TLS server, with fall back to PKIX authentication if no DANE TLSA
