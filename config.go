@@ -11,6 +11,7 @@ type Config struct {
 	DiagMode       bool                  // Diagnostic mode
 	DiagError      error                 // Holds possible error in Diagnostic mode
 	Server         *Server               // Server structure (name, ip, port)
+	TimeoutTCP     int                   // TCP timeout in seconds
 	NoVerify       bool                  // Don't verify server certificate
 	DaneEEname     bool                  // Do name checks even for DANE-EE mode
 	SMTPAnyMode    bool                  // Allow any DANE modes for SMTP
@@ -34,6 +35,7 @@ type Config struct {
 //
 func NewConfig(hostname string, ip interface{}, port int) *Config {
 	c := new(Config)
+	c.TimeoutTCP = defaultTCPTimeout
 	c.DANE = true
 	c.PKIX = true
 	c.Server = NewServer(hostname, ip, port)

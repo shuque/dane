@@ -36,9 +36,9 @@ func getDialer(timeout int) *net.Dialer {
 // Returns a TCP connection (net.Conn) on success. Populates error on
 // failure.
 //
-func getTCPconn(address net.IP, port int) (net.Conn, error) {
+func getTCPconn(address net.IP, port int, timeout int) (net.Conn, error) {
 
-	dialer := getDialer(defaultTCPTimeout)
+	dialer := getDialer(timeout)
 	conn, err := dialer.Dial("tcp", addressString(address, port))
 	return conn, err
 }

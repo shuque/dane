@@ -22,7 +22,7 @@ func DoXMPP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	buf := make([]byte, bufsize)
 
 	server := daneconfig.Server
-	conn, err := getTCPconn(server.Ipaddr, server.Port)
+	conn, err := getTCPconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func DoPOP3(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	var line, transcript string
 
 	server := daneconfig.Server
-	conn, err := getTCPconn(server.Ipaddr, server.Port)
+	conn, err := getTCPconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func DoIMAP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	var line, transcript string
 
 	server := daneconfig.Server
-	conn, err := getTCPconn(server.Ipaddr, server.Port)
+	conn, err := getTCPconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +235,7 @@ func DoSMTP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	var responseDone, gotSTARTTLS bool
 
 	server := daneconfig.Server
-	conn, err := getTCPconn(server.Ipaddr, server.Port)
+	conn, err := getTCPconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
 	if err != nil {
 		return nil, err
 	}
