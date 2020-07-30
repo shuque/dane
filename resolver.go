@@ -11,14 +11,12 @@ import (
 // DNS resolver defaults
 //
 var (
-	defaultDNSTimeout                 = 2
-	defaultDNSRetries                 = 3
-	defaultTCPTimeout                 = 3
-	defaultResolverPort               = 53
-	defaultResolvConf                 = "/etc/resolv.conf"
-	timeoutTCP          time.Duration = time.Second * 5
-	retries                           = 3
-	defaultBufsize      uint16        = 1460
+	defaultDNSTimeout          = 2
+	defaultDNSRetries          = 3
+	defaultTCPTimeout          = 3
+	defaultResolverPort        = 53
+	defaultResolvConf          = "/etc/resolv.conf"
+	defaultBufsize      uint16 = 1460
 )
 
 //

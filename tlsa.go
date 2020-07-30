@@ -55,9 +55,7 @@ type TLSAinfo struct {
 func (t *TLSAinfo) Copy() *TLSAinfo {
 	c := new(TLSAinfo)
 	c.Qname = t.Qname
-	for _, a := range t.Alias {
-		c.Alias = append(c.Alias, a)
-	}
+	c.Alias = append(c.Alias, t.Alias...)
 	for _, r := range t.Rdata {
 		tr := new(TLSArdata)
 		tr.Usage = r.Usage
@@ -129,7 +127,7 @@ func ComputeTLSA(selector, mtype uint8, cert *x509.Certificate) (string, error) 
 	case 1:
 		preimage = cert.RawSubjectPublicKeyInfo
 	default:
-		return "", fmt.Errorf("Unknown TLSA selector: %d", selector)
+		return "", fmt.Errorf("unknown TLSA selector: %d", selector)
 	}
 
 	switch mtype {
@@ -142,7 +140,7 @@ func ComputeTLSA(selector, mtype uint8, cert *x509.Certificate) (string, error) 
 		tmp512 = sha512.Sum512(preimage)
 		output = tmp512[:]
 	default:
-		return "", fmt.Errorf("Unknown TLSA matching type: %d", mtype)
+		return "", fmt.Errorf("unknown TLSA matching type: %d", mtype)
 	}
 	return hex.EncodeToString(output), nil
 }

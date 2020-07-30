@@ -1,6 +1,7 @@
 package dane
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -120,7 +121,7 @@ func sendQuery(query *Query, resolver *Resolver) (*dns.Msg, error) {
 		return nil, err
 	}
 	if response == nil {
-		return nil, fmt.Errorf("Error: null DNS response to query")
+		return nil, errors.New("null response to DNS query")
 	}
 	return response, err
 }
@@ -162,13 +163,14 @@ func GetAddresses(resolver *Resolver, hostname string, secure bool) ([]net.IP, e
 			return nil, err
 		}
 		if !responseOK(response) {
-			return nil, fmt.Errorf("Address lookup rcode: %d", response.MsgHdr.Rcode)
+			return nil, fmt.Errorf("address lookup for %s failed, rcode %d",
+				hostname, response.MsgHdr.Rcode)
 		}
 		if response.MsgHdr.Rcode == dns.RcodeNameError {
-			return nil, fmt.Errorf("%s: Non-existent domain name", hostname)
+			return nil, fmt.Errorf("%s: non-existent domain name", hostname)
 		}
 		if secure && !response.MsgHdr.AuthenticatedData {
-			return nil, fmt.Errorf("Address response was not authenticated")
+			return nil, fmt.Errorf("%s address response was not authenticated", hostname)
 		}
 
 		for _, rr := range response.Answer {
@@ -232,7 +234,7 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 	}
 
 	if !responseOK(response) {
-		return nil, fmt.Errorf("TLSA response rcode: %s",
+		return nil, fmt.Errorf("bad response code to TLSA query %s: %s", qname,
 			dns.RcodeToString[response.MsgHdr.Rcode])
 	}
 
@@ -240,14 +242,14 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 		if resolver.Pkixfallback {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("ERROR: TLSA response was unauthenticated")
+		return nil, fmt.Errorf("response unauthenticated: %s/TLSA", qname)
 	}
 
 	if response.MsgHdr.Rcode == dns.RcodeNameError {
 		if resolver.Pkixfallback {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("ERROR: %s: Non-exist domain name", hostname)
+		return nil, fmt.Errorf("%s: non-existent domain name", hostname)
 	}
 
 	tlsa := Message2TSLAinfo(q.Name, response)
@@ -256,7 +258,7 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 		if resolver.Pkixfallback {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("ERROR: No TLSA records found")
+		return nil, fmt.Errorf("no TLSA records found: %s", qname)
 	}
 
 	return tlsa, err

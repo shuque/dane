@@ -22,22 +22,22 @@ func ConnectByName(hostname string, port int) (*tls.Conn, *Config, error) {
 
 	resolver, err := GetResolver("")
 	if err != nil {
-		return nil, nil, fmt.Errorf("Error obtaining resolver address: %s", err.Error())
+		return nil, nil, fmt.Errorf("error obtaining resolver address: %s", err.Error())
 	}
 
 	tlsa, err := GetTLSA(resolver, hostname, port)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetTLSA: %s", err.Error())
+		return nil, nil, err
 	}
 
 	needSecure := (tlsa != nil)
 	iplist, err := GetAddresses(resolver, hostname, needSecure)
 	if err != nil {
-		return nil, nil, fmt.Errorf("GetAddresses: %s", err.Error())
+		return nil, nil, err
 	}
 
 	if len(iplist) == 0 {
-		return nil, nil, fmt.Errorf("No addresses found")
+		return nil, nil, fmt.Errorf("%s: no addresses found", hostname)
 	}
 
 	for _, ip := range iplist {
@@ -52,5 +52,6 @@ func ConnectByName(hostname string, port int) (*tls.Conn, *Config, error) {
 		return conn, config, err
 	}
 
-	return conn, nil, fmt.Errorf("Failed to connect to any server address")
+	return conn, nil, fmt.Errorf("failed to connect to any server address for %s",
+		hostname)
 }

@@ -73,22 +73,41 @@ func verifyServer(rawCerts [][]byte,
 
 	if !(daneconfig.DANE && daneconfig.TLSA != nil) {
 		if !daneconfig.Okpkix {
+			if daneconfig.DiagMode {
+				daneconfig.DiagError = err
+				return nil
+			}
 			return err
 		}
-		return certs[0].VerifyHostname(tlsconfig.ServerName)
+		err = certs[0].VerifyHostname(tlsconfig.ServerName)
+		if daneconfig.DiagMode {
+			daneconfig.DiagError = err
+			return nil
+		}
+		return err
 	}
 
 	if !daneconfig.Okpkix {
 		daneconfig.VerifiedChains, err = verifyChain(certs, tlsconfig, false)
 		if err != nil {
-			return fmt.Errorf("DANE TLS error: cert chain: %s", err.Error())
+			daneconfig.DiagError = fmt.Errorf("DANE TLS error: cert chain: %s", err.Error())
+			if daneconfig.DiagMode {
+				return nil
+			} else {
+				return daneconfig.DiagError
+			}
 		}
 	}
 
 	// TODO: set Okdane inside AuthenticateAll and return no value?
 	daneconfig.Okdane = AuthenticateAll(daneconfig)
 	if !daneconfig.Okdane {
-		return fmt.Errorf("DANE TLS authentication failed")
+		daneconfig.DiagError = fmt.Errorf("DANE TLS authentication failed")
+		if daneconfig.DiagMode {
+			return nil
+		} else {
+			return daneconfig.DiagError
+		}
 	}
 
 	return nil

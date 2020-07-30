@@ -14,7 +14,7 @@ https://pkg.go.dev/github.com/shuque/dane?tab=doc
 
 ### Description
 
-dane v0.1.8
+dane v0.1.9
 
 Package dane provides a set of functions to perform DANE authentication
 of a TLS server, with fall back to PKIX authentication if no DANE TLSA
@@ -70,6 +70,12 @@ After calling DialTLSA() or DialStartTLSA(), the dane.Config structure
 is populated with additional diagnostic information, such as DANE and
 PKIX authentication status, the verified certificate chains, and the
 verification status of each DANE TLSA record processed.
+
+If dane.Config.DiagMode is set to true, then DialTLSA() and DialStartTLSA()
+will return a working TLS connection handle even if server authentication
+fails (rather than an error), but will populate the dane.Config's DiagError
+member with the appropriate error instead.
+
 
 ### Example code
 

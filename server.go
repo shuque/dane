@@ -22,11 +22,11 @@ type Server struct {
 func NewServer(name string, ip interface{}, port int) *Server {
 	s := new(Server)
 	s.Name = name
-	switch ip.(type) {
+	switch ip := ip.(type) {
 	case net.IP:
-		s.Ipaddr = ip.(net.IP)
+		s.Ipaddr = ip
 	case string:
-		s.Ipaddr = net.ParseIP(ip.(string))
+		s.Ipaddr = net.ParseIP(ip)
 	}
 	s.Port = port
 	return s

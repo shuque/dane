@@ -54,12 +54,18 @@
 // PKIX authentication status, the verified certificate chains, and the
 // verification status of each DANE TLSA record processed.
 //
+// If dane.Config.DiagMode is set to true, then DialTLSA() and DialStartTLSA()
+// will return a working TLS connection handle even if server authentication
+// fails (rather than an error), but will populate the dane.Config's DiagError
+// member with the appropriate error instead.
+//
+
 package dane
 
 import "fmt"
 
 // Version - current version number
-var Version = VersionStruct{0, 1, 8}
+var Version = VersionStruct{0, 1, 9}
 
 // VersionStruct - version structure
 type VersionStruct struct {

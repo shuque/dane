@@ -8,6 +8,8 @@ import (
 // Config contains a DANE configuration for a single Server.
 //
 type Config struct {
+	DiagMode       bool                  // Diagnostic mode
+	DiagError      error                 // Holds possible error in Diagnostic mode
 	Server         *Server               // Server structure (name, ip, port)
 	NoVerify       bool                  // Don't verify server certificate
 	DaneEEname     bool                  // Do name checks even for DANE-EE mode
@@ -77,4 +79,11 @@ func (c *Config) SetServiceName(servicename string) {
 //
 func (c *Config) NoPKIXfallback() {
 	c.PKIX = false
+}
+
+//
+// SetDiagMode sets the Diagnostic mode.
+//
+func (c *Config) SetDiagMode(value bool) {
+	c.DiagMode = value
 }

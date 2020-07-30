@@ -332,6 +332,6 @@ func StartTLS(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	case "xmpp-client", "xmpp-server":
 		return DoXMPP(tlsconfig, daneconfig)
 	default:
-		return nil, fmt.Errorf("Unknown STARTTLS application: %s", daneconfig.Appname)
+		return nil, fmt.Errorf("unknown STARTTLS application: %s", daneconfig.Appname)
 	}
 }
