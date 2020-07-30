@@ -13,6 +13,7 @@ type Config struct {
 	Server         *Server               // Server structure (name, ip, port)
 	TimeoutTCP     int                   // TCP timeout in seconds
 	NoVerify       bool                  // Don't verify server certificate
+	ALPN           []string              // ALPN strings to send
 	DaneEEname     bool                  // Do name checks even for DANE-EE mode
 	SMTPAnyMode    bool                  // Allow any DANE modes for SMTP
 	Appname        string                // STARTTLS application name
@@ -88,4 +89,12 @@ func (c *Config) NoPKIXfallback() {
 //
 func (c *Config) SetDiagMode(value bool) {
 	c.DiagMode = value
+}
+
+//
+// SetALPN sets ALPN strings to be used.
+//
+func (c *Config) SetALPN(alpnStrings []string) {
+	c.ALPN = make([]string, len(alpnStrings))
+	copy(c.ALPN, alpnStrings)
 }

@@ -126,6 +126,9 @@ func GetTLSconfig(daneconfig *Config) *tls.Config {
 	if daneconfig.NoVerify {
 		return config
 	}
+	if daneconfig.ALPN != nil {
+		config.NextProtos = daneconfig.ALPN
+	}
 	config.VerifyPeerCertificate = func(rawCerts [][]byte,
 		verifiedChains [][]*x509.Certificate) error {
 		return verifyServer(rawCerts, verifiedChains, config, daneconfig)
