@@ -260,7 +260,7 @@ func DoSMTP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 		}
 	}
 	if replycode != 220 {
-		return nil, fmt.Errorf("invalid reply code in SMTP greeting")
+		return nil, fmt.Errorf("invalid reply code (%d) in SMTP greeting", replycode)
 	}
 
 	// Send EHLO, read possibly multi-line response, look for STARTTLS

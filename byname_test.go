@@ -20,7 +20,28 @@ func TestConnectByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s\n", err.Error())
 	}
-	fmt.Printf("ConnectByName: Success connecting to %s %d\n", hostname, port)
+	fmt.Printf("ConnectByName: Success connecting to %s %s\n",
+		hostname, config.Server.Address())
+	if config.Okdane {
+		fmt.Printf("DANE OK\n")
+	} else if config.Okpkix {
+		fmt.Printf("PKIX OK\n")
+	}
+	fmt.Printf("\n")
+	conn.Close()
+}
+
+func TestConnectByNameAsync(t *testing.T) {
+
+	var hostname = "www.example.com"
+	var port = 443
+
+	conn, config, err := ConnectByNameAsync(hostname, port)
+	if err != nil {
+		t.Fatalf("%s\n", err.Error())
+	}
+	fmt.Printf("ConnectByName: Success connecting to %s %s\n",
+		hostname, config.Server.Address())
 	if config.Okdane {
 		fmt.Printf("DANE OK\n")
 	} else if config.Okpkix {
