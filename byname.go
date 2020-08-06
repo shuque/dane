@@ -116,8 +116,7 @@ func ConnectByNameAsync(hostname string, port int) (*tls.Conn, *Config, error) {
 				defer wg.Done()
 				config := NewConfig(hostname, ip, port)
 				config.SetTLSA(tlsa)
-				ip4 := ip.To4()
-				if ip4 != nil {
+				if ip4 := ip.To4(); ip4 != nil {
 					time.Sleep(IPv6Headstart)
 				}
 				conn, err = DialTLS(config)
