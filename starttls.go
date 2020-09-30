@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -264,8 +265,13 @@ func DoSMTP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	}
 
 	// Send EHLO, read possibly multi-line response, look for STARTTLS
-	transcript += "send: EHLO localhost\n"
-	writer.WriteString("EHLO localhost\r\n")
+	hostname, err := os.Hostname()
+	if err != nil {
+		return nil, err
+	}
+	ehloCommand := fmt.Sprintf("EHLO %s", hostname)
+	transcript += fmt.Sprintf("send: %s\n", ehloCommand)
+	writer.WriteString(fmt.Sprintf("%s\r\n", ehloCommand))
 	writer.Flush()
 
 	for {
