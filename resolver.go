@@ -54,11 +54,10 @@ func NewResolver(servers []*Server) *Resolver {
 }
 
 //
-// GetResolver obtains the 1st resolver address from the system
-// default resolver configuration (/etc/resolv.conf), or from a custom
-// resolver configuration file (resconf), if it is set. Returns an
-// initialized Resolver structure on success, otherwise sets error
-// to non-nil.
+// GetResolver returns a Resolver configuration structure containing
+// a list of DNS resolver addresses obtained from a custom resolver
+// configuration file or from the system default (/etc/resolv.conf)
+// if the config file is unspecified.
 //
 func GetResolver(resconf string) (*Resolver, error) {
 

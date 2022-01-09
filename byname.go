@@ -20,11 +20,8 @@ type Response struct {
 // IPv6 connect headstart (delay IPv4 connections by this amount)
 var IPv6Headstart = 25 * time.Millisecond
 
-// For goroutine communications and synchronization
-var wg sync.WaitGroup
-var numParallel uint16 = 20
-var tokens = make(chan struct{}, int(numParallel))
-var results = make(chan *Response)
+// Maximum number of parallel connections attempted
+var MaxParallelConnections = 30
 
 //
 // ConnectByName takes a hostname and port, resolves the addresses for
@@ -78,15 +75,18 @@ func ConnectByName(hostname string, port int) (*tls.Conn, *Config, error) {
 }
 
 //
-// ConnectByNameAsync is an async version of ConnectByName that tries
-// to connect to all server addresses in parallel, and returns the first
-// successful connection. IPv4 connections are intentionally delayed by
-// an IPv6HeadStart amount of time.
+// ConnectByNameAsyncBase. Should not be called directly. Instead call
+// either ConnectByNameAsync or ConnectByNameAsync2
 //
-func ConnectByNameAsync(hostname string, port int) (*tls.Conn, *Config, error) {
+func ConnectByNameAsyncBase(hostname string, port int, pkixfallback bool) (*tls.Conn, *Config, error) {
 
 	var conn *tls.Conn
 	var ip net.IP
+
+	var wg sync.WaitGroup
+	var numParallel = MaxParallelConnections
+	var tokens = make(chan struct{}, numParallel)
+	var results = make(chan *Response)
 
 	resolver, err := GetResolver("")
 	if err != nil {
@@ -98,15 +98,22 @@ func ConnectByNameAsync(hostname string, port int) (*tls.Conn, *Config, error) {
 		return nil, nil, err
 	}
 
+	if !pkixfallback && (tlsa == nil) {
+		return nil, nil, fmt.Errorf("no TLSA records found")
+	}
+
 	needSecure := (tlsa != nil)
 	iplist, err := GetAddresses(resolver, hostname, needSecure)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if len(iplist) == 0 {
+	iplist_length := len(iplist)
+	if iplist_length == 0 {
 		return nil, nil, fmt.Errorf("%s: no addresses found", hostname)
 	}
+
+	done := make(chan struct{}, iplist_length)
 
 	go func() {
 		for _, ip = range iplist {
@@ -116,23 +123,56 @@ func ConnectByNameAsync(hostname string, port int) (*tls.Conn, *Config, error) {
 				defer wg.Done()
 				config := NewConfig(hostname, ip, port)
 				config.SetTLSA(tlsa)
+				if !pkixfallback {
+					config.NoPKIXfallback()
+				}
 				if ip4 := ip.To4(); ip4 != nil {
 					time.Sleep(IPv6Headstart)
 				}
 				conn, err = DialTLS(config)
-				<-tokens
-				results <- &Response{config: config, conn: conn, err: err}
+				select {
+				case <-done:
+				case results <- &Response{config: config, conn: conn, err: err}:
+					<-tokens
+				}
 			}(hostname, ip, port)
 		}
 		wg.Wait()
 		close(results)
 	}()
 
+	results_so_far := 0
 	for r := range results {
+		results_so_far += 1
 		if r.err == nil {
+			for i := 0; i < iplist_length-results_so_far; i++ {
+				done <- struct{}{}
+			}
 			return r.conn, r.config, nil
 		}
 	}
 	return conn, nil, fmt.Errorf("failed to connect to any server address for %s",
 		hostname)
+}
+
+//
+// ConnectByNameAsync is an async version of ConnectByName that tries
+// to connect to all server addresses in parallel, and returns the first
+// successful connection. IPv4 connections are intentionally delayed by
+// an IPv6HeadStart amount of time. Performs DANE authentication with
+// fallback to PKIX if not secure TLSA records are found.
+//
+func ConnectByNameAsync(hostname string, port int) (*tls.Conn, *Config, error) {
+
+	return ConnectByNameAsyncBase(hostname, port, true)
+}
+
+//
+// ConnectByNameAsync2 is the same as ConnectByNameAsync, but supports
+// an additional argument to specify whether PKIX fallback should be performed.
+// By setting that argument to false, we can required DANE only authentication.
+//
+func ConnectByNameAsync2(hostname string, port int, pkixfallback bool) (*tls.Conn, *Config, error) {
+
+	return ConnectByNameAsyncBase(hostname, port, pkixfallback)
 }

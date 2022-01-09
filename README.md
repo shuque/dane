@@ -14,8 +14,6 @@ https://pkg.go.dev/github.com/shuque/dane?tab=doc
 
 ### Description
 
-dane v0.1.11
-
 Package dane provides a set of functions to perform DANE authentication
 of a TLS server, with fall back to PKIX authentication if no DANE TLSA
 records exist for the server. DANE is a protocol that employs DNSSEC signed
@@ -110,14 +108,20 @@ for _, ip := range iplist {
 	} else {
 		fmt.Printf("Result: FAILED\n")
 	}
-    //
-    // do some stuff with the obtained TLS connection here
-    //
-    conn.Close()
+	//
+	// do some stuff with the obtained TLS connection here
+	//
+	conn.Close()
 }
 ```
 
-The ConnectByName() function is a simpler all-in-one function that takes a
-hostname and port argument, and then lookups up TLSA records, connects to
-the first address associated with the hostname that results in an
-authenticated connection, and returns the associated TLS connection object.
+The ConnectByName(), ConnectByNameAsync(), and ConnectByNameAsync2() functions
+are simpler all-in-one functions that take a hostname and port argument, and then
+lookup up TLSA records, connect to the first address associated with the hostname
+that results in an authenticated connection, and returns the associated TLS connection
+object.
+
+GetHttpClient() returns a HTTP client structure (net/http.Client) configured to
+do DANE authentication of a HTTPS server. The "pkixfallback" boolean argument specifies
+whether or not to fallback to PKIX authentication if there are no secure TLSA records
+published for the server.
