@@ -15,7 +15,11 @@ import (
 
 func TestGetHttpClient(t *testing.T) {
 
+	defer fmt.Println()
+
 	var urlstring = "https://www.example.com/"
+
+	fmt.Printf("## HTTPCLIENT: %s\n", urlstring)
 
 	httpclient := GetHttpClient(true)
 	request, err := http.NewRequest(http.MethodGet, urlstring, nil)

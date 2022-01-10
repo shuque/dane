@@ -8,12 +8,10 @@ package dane
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"testing"
 )
 
-var ip net.IP
 var resolver1, resolver2 *Resolver
 
 func TestMain(m *testing.M) {
@@ -81,4 +79,78 @@ func TestDialTLS(t *testing.T) {
 			}
 		}) // end t.Run()
 	}
+}
+
+func TestDiagMode(t *testing.T) {
+
+	var hostname = "badhash.dane.huque.com"
+	var ipstring = "104.236.200.251"
+	var port = 443
+
+	daneconfig := NewConfig(hostname, ipstring, port)
+	daneconfig.SetDiagMode(true)
+	server := daneconfig.Server
+	fmt.Printf("## TLS DIAGMODE: %s\n", server)
+	tlsa, err := GetTLSA(resolver1, server.Name, server.Port)
+	if err != nil {
+		fmt.Printf("Result: FAILED: %s\n", err.Error())
+		t.Fatalf("%s", err)
+		return
+	}
+	daneconfig.SetTLSA(tlsa)
+	conn, err := DialTLS(daneconfig)
+	if daneconfig.TLSA != nil {
+		daneconfig.TLSA.Results()
+	}
+	if err != nil {
+		fmt.Printf("Result: FAILED: %s\n", err.Error())
+		t.Fatalf("DialTLS: %s.", err)
+		return
+	}
+	conn.Close()
+	if daneconfig.Okdane {
+		fmt.Printf("Result: DANE OK\n")
+	} else if daneconfig.Okpkix {
+		fmt.Printf("Result: PKIX OK\n")
+	} else {
+		fmt.Printf("Result: FAILED\n")
+	}
+
+}
+
+func TestALPN(t *testing.T) {
+
+	var hostname = "www.huque.com"
+	var ipstring = "50.116.63.23"
+	var port = 443
+
+	daneconfig := NewConfig(hostname, ipstring, port)
+	server := daneconfig.Server
+	fmt.Printf("## TLS ALPN: %s\n", server)
+	tlsa, err := GetTLSA(resolver1, server.Name, server.Port)
+	if err != nil {
+		fmt.Printf("Result: FAILED: %s\n", err.Error())
+		t.Fatalf("%s", err)
+		return
+	}
+	daneconfig.SetTLSA(tlsa)
+	daneconfig.SetALPN([]string{"h2"})
+	conn, err := DialTLS(daneconfig)
+	if daneconfig.TLSA != nil {
+		daneconfig.TLSA.Results()
+	}
+	if err != nil {
+		fmt.Printf("Result: FAILED: %s\n", err.Error())
+		t.Fatalf("DialTLS: %s.", err)
+		return
+	}
+	conn.Close()
+	if daneconfig.Okdane {
+		fmt.Printf("Result: DANE OK\n")
+	} else if daneconfig.Okpkix {
+		fmt.Printf("Result: PKIX OK\n")
+	} else {
+		fmt.Printf("Result: FAILED\n")
+	}
+
 }
