@@ -82,11 +82,13 @@ func ConnectByNameAsyncBase(hostname string, port int, pkixfallback bool) (*tls.
 
 	var conn *tls.Conn
 	var ip net.IP
-
 	var wg sync.WaitGroup
 	var numParallel = MaxParallelConnections
 	var tokens = make(chan struct{}, numParallel)
 	var results = make(chan *Response)
+	var done = make(chan struct{})
+
+	defer close(done)
 
 	resolver, err := GetResolver("")
 	if err != nil {
@@ -108,12 +110,9 @@ func ConnectByNameAsyncBase(hostname string, port int, pkixfallback bool) (*tls.
 		return nil, nil, err
 	}
 
-	iplist_length := len(iplist)
-	if iplist_length == 0 {
+	if len(iplist) == 0 {
 		return nil, nil, fmt.Errorf("%s: no addresses found", hostname)
 	}
-
-	done := make(chan struct{}, iplist_length)
 
 	go func() {
 		for _, ip = range iplist {
@@ -141,13 +140,8 @@ func ConnectByNameAsyncBase(hostname string, port int, pkixfallback bool) (*tls.
 		close(results)
 	}()
 
-	results_so_far := 0
 	for r := range results {
-		results_so_far += 1
 		if r.err == nil {
-			for i := 0; i < iplist_length-results_so_far; i++ {
-				done <- struct{}{}
-			}
 			return r.conn, r.config, nil
 		}
 	}
@@ -160,7 +154,7 @@ func ConnectByNameAsyncBase(hostname string, port int, pkixfallback bool) (*tls.
 // to connect to all server addresses in parallel, and returns the first
 // successful connection. IPv4 connections are intentionally delayed by
 // an IPv6HeadStart amount of time. Performs DANE authentication with
-// fallback to PKIX if not secure TLSA records are found.
+// fallback to PKIX if no secure TLSA records are found.
 //
 func ConnectByNameAsync(hostname string, port int) (*tls.Conn, *Config, error) {
 
