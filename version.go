@@ -59,6 +59,17 @@
 // fails (rather than an error), but will populate the dane.Config's DiagError
 // member with the appropriate error instead.
 //
+// The ConnectByName(), ConnectByNameAsync(), and ConnectByNameAsync2() functions
+// are simpler all-in-one functions that take a hostname and port argument, and then
+// lookup up TLSA records, connect to the first address associated with the hostname
+// that results in an authenticated connection, and returns the associated TLS connection
+// object.
+//
+// GetHttpClient() returns a HTTP client structure (net/http.Client) configured to
+// do DANE authentication of a HTTPS server. The "pkixfallback" boolean argument
+// specifies whether or not to fallback to PKIX authentication if there are no secure
+// TLSA records published for the server.
+//
 
 package dane
 
