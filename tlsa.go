@@ -236,55 +236,60 @@ func smtpUsageOK(tr *TLSArdata, daneconfig *Config) bool {
 
 //
 // AuthenticateSingle performs DANE authentication of a single certificate
-// chain, using the TLSA RRset information embedded in the provided dane
-// Config. Returns true or false accordingly. It checks _all_ available
-// TLSA records against the certificate chain, and records the status in
-// TLSAinfo structure inside Config.
+// chain, using a single TLSA resource data. Returns true or false accordingly.
 //
-func AuthenticateSingle(chain []*x509.Certificate, daneconfig *Config) bool {
+func AuthenticateSingle(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Config) bool {
 
-	var Authenticated bool
 	var err error
 
-	for _, tr := range daneconfig.TLSA.Rdata {
-		tr.Checked = true
-		if daneconfig.Appname == "smtp" && !smtpUsageOK(tr, daneconfig) {
-			tr.Ok = false
-			tr.Message = "invalid usage mode for smtp"
-			continue
-		}
-		if !ChainMatchesTLSA(chain, tr, daneconfig) {
-			continue
-		}
-		if tr.Usage == DaneEE && !daneconfig.DaneEEname {
-			Authenticated = true
-			continue
-		}
-		err = chain[0].VerifyHostname(daneconfig.Server.Name)
-		if err == nil {
-			Authenticated = true
-		} else {
-			tr.Ok = false
-			tr.Message += " but name check failed"
-		}
+	tr.Checked = true
+
+	if daneconfig.Appname == "smtp" && !smtpUsageOK(tr, daneconfig) {
+		tr.Ok = false
+		tr.Message = "invalid usage mode for smtp"
+		return false
 	}
 
-	return Authenticated
+	if !ChainMatchesTLSA(chain, tr, daneconfig) {
+		return false
+	}
+
+	if tr.Usage == DaneEE && !daneconfig.DaneEEname {
+		return true
+	}
+
+	err = chain[0].VerifyHostname(daneconfig.Server.Name)
+	if err == nil {
+		return true
+	} else {
+		tr.Ok = false
+		tr.Message += " but name check failed"
+		return false
+	}
 }
 
 //
 // AuthenticateAll performs DANE authentication of a set of certificate chains.
 // The TLSA RRset information is expected to be pre-initialized in the dane
-// Config structure. If there are multiple chains, usually one is a superset of
-// another. So it just returns true, once a single chain authenticates. Returns
-// false if no chain authenticates.
+// Config structure.
 //
-func AuthenticateAll(daneconfig *Config) bool {
+func AuthenticateAll(daneconfig *Config) {
 
-	for _, chain := range daneconfig.VerifiedChains {
-		if AuthenticateSingle(chain, daneconfig) {
-			return true
+	var chains [][]*x509.Certificate
+
+	daneconfig.Okdane = false
+
+	for _, tr := range daneconfig.TLSA.Rdata {
+		switch tr.Usage {
+		case DaneEE, DaneTA:
+			chains = daneconfig.DANEChains
+		case PkixEE, PkixTA:
+			chains = daneconfig.PKIXChains
+		}
+		for _, chain := range chains {
+			if AuthenticateSingle(chain, tr, daneconfig) {
+				daneconfig.Okdane = true
+			}
 		}
 	}
-	return false
 }

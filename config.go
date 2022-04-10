@@ -8,24 +8,26 @@ import (
 // Config contains a DANE configuration for a single Server.
 //
 type Config struct {
-	DiagMode       bool                  // Diagnostic mode
-	DiagError      error                 // Holds possible error in Diagnostic mode
-	Server         *Server               // Server structure (name, ip, port)
-	TimeoutTCP     int                   // TCP timeout in seconds
-	NoVerify       bool                  // Don't verify server certificate
-	ALPN           []string              // ALPN strings to send
-	DaneEEname     bool                  // Do name checks even for DANE-EE mode
-	SMTPAnyMode    bool                  // Allow any DANE modes for SMTP
-	Appname        string                // STARTTLS application name
-	Servicename    string                // Servicename, if different from server
-	Transcript     string                // StartTLS transcript
-	DANE           bool                  // do DANE authentication
-	PKIX           bool                  // fall back to PKIX authentication
-	Okdane         bool                  // DANE authentication result
-	Okpkix         bool                  // PKIX authentication result
-	TLSA           *TLSAinfo             // TLSA RRset information
-	PeerChain      []*x509.Certificate   // Peer Certificate Chain
-	VerifiedChains [][]*x509.Certificate // Verified server Certificate Chains
+	DiagMode    bool                  // Diagnostic mode
+	DiagError   error                 // Holds possible error in Diagnostic mode
+	Server      *Server               // Server structure (name, ip, port)
+	TimeoutTCP  int                   // TCP timeout in seconds
+	NoVerify    bool                  // Don't verify server certificate
+	ALPN        []string              // ALPN strings to send
+	DaneEEname  bool                  // Do name checks even for DANE-EE mode
+	SMTPAnyMode bool                  // Allow any DANE modes for SMTP
+	Appname     string                // STARTTLS application name
+	Servicename string                // Servicename, if different from server
+	Transcript  string                // StartTLS transcript
+	DANE        bool                  // do DANE authentication
+	PKIX        bool                  // fall back to PKIX authentication
+	Okdane      bool                  // DANE authentication result
+	Okpkix      bool                  // PKIX authentication result
+	TLSA        *TLSAinfo             // TLSA RRset information
+	PeerChain   []*x509.Certificate   // Peer Certificate Chain
+	PKIXChains  [][]*x509.Certificate // PKIX Certificate Chains
+	DANEChains  [][]*x509.Certificate // DANE Certificate Chains
+
 }
 
 //

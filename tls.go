@@ -66,7 +66,7 @@ func verifyServer(rawCerts [][]byte,
 	}
 
 	daneconfig.PeerChain = certs
-	daneconfig.VerifiedChains, err = verifyChain(certs, tlsconfig, true)
+	daneconfig.PKIXChains, err = verifyChain(certs, tlsconfig, true)
 	if err == nil {
 		daneconfig.Okpkix = true
 	}
@@ -87,9 +87,12 @@ func verifyServer(rawCerts [][]byte,
 		return err
 	}
 
-	if !daneconfig.Okpkix {
-		daneconfig.VerifiedChains, err = verifyChain(certs, tlsconfig, false)
-		if err != nil {
+	// Now we have to do DANE verification. Run verifyChain() with root=false
+	// and assign the chain to DANEChains.
+
+	daneChains, err := verifyChain(certs, tlsconfig, false)
+	if err != nil {
+		if daneconfig.PKIX && daneconfig.Okpkix {
 			daneconfig.DiagError = fmt.Errorf("DANE TLS error: cert chain: %s", err.Error())
 			if daneconfig.DiagMode {
 				return nil
@@ -98,9 +101,9 @@ func verifyServer(rawCerts [][]byte,
 			}
 		}
 	}
+	daneconfig.DANEChains = daneChains
 
-	// TODO: set Okdane inside AuthenticateAll and return no value?
-	daneconfig.Okdane = AuthenticateAll(daneconfig)
+	AuthenticateAll(daneconfig)
 	if !daneconfig.Okdane {
 		daneconfig.DiagError = fmt.Errorf("DANE TLS authentication failed")
 		if daneconfig.DiagMode {

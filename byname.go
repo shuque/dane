@@ -164,7 +164,7 @@ func ConnectByNameAsync(hostname string, port int) (*tls.Conn, *Config, error) {
 //
 // ConnectByNameAsync2 is the same as ConnectByNameAsync, but supports
 // an additional argument to specify whether PKIX fallback should be performed.
-// By setting that argument to false, we can required DANE only authentication.
+// By setting that argument to false, we can require DANE only authentication.
 //
 func ConnectByNameAsync2(hostname string, port int, pkixfallback bool) (*tls.Conn, *Config, error) {
 

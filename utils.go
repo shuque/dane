@@ -1,6 +1,8 @@
 package dane
 
 import (
+	"crypto/x509"
+	"encoding/pem"
 	"net"
 	"strconv"
 	"strings"
@@ -41,4 +43,17 @@ func getTCPconn(address net.IP, port int, timeout int) (net.Conn, error) {
 	dialer := getDialer(timeout)
 	conn, err := dialer.Dial("tcp", addressString(address, port))
 	return conn, err
+}
+
+//
+// CertToPEMBytes returns PEM encoded bytes corresponding to the given
+// x.509 certificate.
+//
+func CertToPEMBytes(cert *x509.Certificate) []byte {
+
+	block := &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Raw,
+	}
+	return pem.EncodeToMemory(block)
 }
