@@ -128,6 +128,14 @@ func GetTLSconfig(daneconfig *Config) *tls.Config {
 		config.MinVersion = daneconfig.TLSversion
 		config.MaxVersion = daneconfig.TLSversion
 	}
+	if daneconfig.PKIXRootCA != nil {
+		roots := x509.NewCertPool()
+		_ = roots.AppendCertsFromPEM(daneconfig.PKIXRootCA)
+		// Should emit log warning on failure to parse root CA data here.
+		// Ideally we should return an error but that requires a function
+		// signature change.
+		config.RootCAs = roots
+	}
 	if daneconfig.ALPN != nil {
 		config.NextProtos = daneconfig.ALPN
 	}

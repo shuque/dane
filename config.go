@@ -12,6 +12,7 @@ type Config struct {
 	TimeoutTCP  int                   // TCP timeout in seconds
 	NoVerify    bool                  // Don't verify server certificate
 	TLSversion  uint16                // TLS version number (otherwise use best TLS version offered)
+	PKIXRootCA  []byte                // Use PEM bytes as Root CA store for PKIX authentication
 	ALPN        []string              // ALPN strings to send
 	DaneEEname  bool                  // Do name checks even for DANE-EE mode
 	SMTPAnyMode bool                  // Allow any DANE modes for SMTP
