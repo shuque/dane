@@ -7,14 +7,12 @@ import (
 	"net"
 )
 
-//
 // verifyChain performs certificate chain validation of the given chain (list)
 // of certificates. On success it returns a list of verified chains. On failure,
 // it sets error to non-nil with an embedded error string. If "root" is true,
 // then the system's root certificate store is used to find a trust anchor.
 // Otherwise, it sets the tail certificate of the chain as the root trust
 // anchor (self signed mode).
-//
 func verifyChain(certs []*x509.Certificate, config *tls.Config,
 	root bool) ([][]*x509.Certificate, error) {
 
@@ -45,11 +43,9 @@ func verifyChain(certs []*x509.Certificate, config *tls.Config,
 	return verifiedChains, err
 }
 
-//
 // verifyServer is a custom callback function configure in the tls
 // Config data structure that performs DANE and PKIX authentication of
 // the server certificate as appropriate.
-//
 func verifyServer(rawCerts [][]byte,
 	verifiedChains [][]*x509.Certificate,
 	tlsconfig *tls.Config, daneconfig *Config) error {
@@ -116,11 +112,10 @@ func verifyServer(rawCerts [][]byte,
 	return nil
 }
 
-//
 // GetTLSconfig takes a dane Config structure, and returns a tls Config
-// initialized with the ServerName, and a custom server certificate
-// verification callback that performs DANE authentication.
-//
+// initialized with the ServerName, other specified TLS parameters, and a
+// custom server certificate verification callback that performs DANE
+// authentication.
 func GetTLSconfig(daneconfig *Config) *tls.Config {
 
 	config := new(tls.Config)
@@ -128,6 +123,10 @@ func GetTLSconfig(daneconfig *Config) *tls.Config {
 	config.InsecureSkipVerify = true
 	if daneconfig.NoVerify {
 		return config
+	}
+	if daneconfig.TLSversion != 0 {
+		config.MinVersion = daneconfig.TLSversion
+		config.MaxVersion = daneconfig.TLSversion
 	}
 	if daneconfig.ALPN != nil {
 		config.NextProtos = daneconfig.ALPN
@@ -139,11 +138,9 @@ func GetTLSconfig(daneconfig *Config) *tls.Config {
 	return config
 }
 
-//
 // TLShandshake takes a network connection and a TLS Config structure,
 // negotiates TLS on the connection and returns a TLS connection on
 // success. It sets error to non-nil on failure.
-//
 func TLShandshake(conn net.Conn, config *tls.Config) (*tls.Conn, error) {
 
 	tlsconn := tls.Client(conn, config)
@@ -151,7 +148,6 @@ func TLShandshake(conn net.Conn, config *tls.Config) (*tls.Conn, error) {
 	return tlsconn, err
 }
 
-//
 // DialTLS takes a pointer to an initialized dane Config structure,
 // establishes and returns a TLS connection. The error return parameter
 // is nil on success, and appropriately populated if not.
@@ -159,7 +155,6 @@ func TLShandshake(conn net.Conn, config *tls.Config) (*tls.Conn, error) {
 // DialTLS obtains a TLS config structure initialized with Dane
 // verification callbacks, and connects to the server network address
 // defined in Config using tls.DialWithDialer().
-//
 func DialTLS(daneconfig *Config) (*tls.Conn, error) {
 
 	var err error
@@ -172,7 +167,6 @@ func DialTLS(daneconfig *Config) (*tls.Conn, error) {
 	return conn, err
 }
 
-//
 // DialStartTLS takes a pointer to an initialized dane Config structure,
 // connects to the defined server, speaks the necessary application
 // protocol preamble to activate STARTTLS, then negotiates TLS and returns
@@ -182,7 +176,6 @@ func DialTLS(daneconfig *Config) (*tls.Conn, error) {
 // DialStartTLS obtains a TLS config structure, initialized with Dane
 // verification callbacks, and connects to the server network address
 // defined in Config using tls.DialWithDialer().
-//
 func DialStartTLS(daneconfig *Config) (*tls.Conn, error) {
 
 	var err error
