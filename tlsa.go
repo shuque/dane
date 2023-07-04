@@ -9,9 +9,7 @@ import (
 	"fmt"
 )
 
-//
 // DANE Certificte Usage modes
-//
 const (
 	PkixTA = 0 // Certificate Authority Constraint
 	PkixEE = 1 // Service Certificate Constraint
@@ -19,9 +17,7 @@ const (
 	DaneEE = 3 // Domain Issued Certificate
 )
 
-//
 // TLSArdata - TLSA rdata structure
-//
 type TLSArdata struct {
 	Usage    uint8  // Certificate Usage
 	Selector uint8  // Selector: 0: full cert, 1: subject public key
@@ -32,26 +28,20 @@ type TLSArdata struct {
 	Message  string // Diagnostic message for matching
 }
 
-//
 // String returns a string representation of the TLSA rdata.
-//
 func (tr *TLSArdata) String() string {
 	return fmt.Sprintf("DANE TLSA %d %d %d [%s..]",
 		tr.Usage, tr.Selector, tr.Mtype, tr.Data[0:8])
 }
 
-//
 // TLSAinfo contains details of the TLSA RRset.
-//
 type TLSAinfo struct {
 	Qname string
 	Alias []string
 	Rdata []*TLSArdata
 }
 
-//
 // Copy makes a deep copy of the TLSAinfo structure
-//
 func (t *TLSAinfo) Copy() *TLSAinfo {
 	c := new(TLSAinfo)
 	c.Qname = t.Qname
@@ -67,9 +57,7 @@ func (t *TLSAinfo) Copy() *TLSAinfo {
 	return c
 }
 
-//
 // Uncheck unchecks result fields of all the TLSA rdata structs.
-//
 func (t *TLSAinfo) Uncheck() {
 	for _, tr := range t.Rdata {
 		tr.Checked = false
@@ -78,9 +66,7 @@ func (t *TLSAinfo) Uncheck() {
 	}
 }
 
-//
 // Results prints TLSA RRset certificate matching results.
-//
 func (t *TLSAinfo) Results() {
 	if t.Rdata == nil {
 		fmt.Printf("No TLSA records available.\n")
@@ -97,7 +83,6 @@ func (t *TLSAinfo) Results() {
 	}
 }
 
-//
 // Print prints information about the TLSAinfo TLSA RRset.
 func (t *TLSAinfo) Print() {
 	fmt.Printf("DNS TLSA RRset:\n  qname: %s\n", t.Qname)
@@ -109,11 +94,9 @@ func (t *TLSAinfo) Print() {
 	}
 }
 
-//
 // ComputeTLSA calculates the TLSA rdata hash value for the given certificate
 // from the given DANE selector and matching type. Returns the hex encoded
 // string form of the value, and sets error to non-nil on failure.
-//
 func ComputeTLSA(selector, mtype uint8, cert *x509.Certificate) (string, error) {
 
 	var preimage asn1.RawContent
@@ -145,14 +128,12 @@ func ComputeTLSA(selector, mtype uint8, cert *x509.Certificate) (string, error) 
 	return hex.EncodeToString(output), nil
 }
 
-//
 // ChainMatchesTLSA checks that the TLSA record data (tr) has a corresponding
 // match in the certificate chain (chain). Only one TLSA record needs to match
 // for the chain to be considered matched. However, this function checks all
 // available TLSA records and records the results of the match in the TLSArdata
 // structure. These results can be useful to diagnostic tools using this
 // package.
-//
 func ChainMatchesTLSA(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Config) bool {
 
 	var Authenticated = false
@@ -215,12 +196,10 @@ func ChainMatchesTLSA(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Conf
 	return Authenticated
 }
 
-//
 // smtpUsageOK returns whether the TLSA rdata set is valid for SMTP
 // STARTTLS. By default, per spec, only DANE usage modes 2 and 3 are
 // permitted. But if the SMTPAnyMode flag is set, all modes are allowed
 // and the function unconditionally returns true.
-//
 func smtpUsageOK(tr *TLSArdata, daneconfig *Config) bool {
 
 	if daneconfig.SMTPAnyMode {
@@ -234,10 +213,8 @@ func smtpUsageOK(tr *TLSArdata, daneconfig *Config) bool {
 	return false
 }
 
-//
 // AuthenticateSingle performs DANE authentication of a single certificate
 // chain, using a single TLSA resource data. Returns true or false accordingly.
-//
 func AuthenticateSingle(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Config) bool {
 
 	var err error
@@ -268,11 +245,9 @@ func AuthenticateSingle(chain []*x509.Certificate, tr *TLSArdata, daneconfig *Co
 	}
 }
 
-//
 // AuthenticateAll performs DANE authentication of a set of certificate chains.
 // The TLSA RRset information is expected to be pre-initialized in the dane
 // Config structure.
-//
 func AuthenticateAll(daneconfig *Config) {
 
 	var chains [][]*x509.Certificate
@@ -280,8 +255,14 @@ func AuthenticateAll(daneconfig *Config) {
 	daneconfig.Okdane = false
 
 	for _, tr := range daneconfig.TLSA.Rdata {
+		if tr.Usage == DaneEE {
+			if AuthenticateSingle(daneconfig.PeerChain, tr, daneconfig) {
+				daneconfig.Okdane = true
+			}
+			continue
+		}
 		switch tr.Usage {
-		case DaneEE, DaneTA:
+		case DaneTA:
 			chains = daneconfig.DANEChains
 		case PkixEE, PkixTA:
 			chains = daneconfig.PKIXChains

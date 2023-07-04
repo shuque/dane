@@ -76,7 +76,7 @@ package dane
 import "fmt"
 
 // Version - current version number
-var Version = VersionStruct{0, 2, 1}
+var Version = VersionStruct{0, 2, 2}
 
 // VersionStruct - version structure
 type VersionStruct struct {
