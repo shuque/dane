@@ -83,6 +83,25 @@ func (t *TLSAinfo) Results() {
 	}
 }
 
+// ResultsString is like Results but returns a string.
+func (t *TLSAinfo) ResultsString() string {
+	var result string
+
+	if t.Rdata == nil {
+		return "No TLSA records available.\n"
+	}
+	for _, tr := range t.Rdata {
+		if !tr.Checked {
+			result += fmt.Sprintf("%s: not checked\n", tr)
+		} else if tr.Ok {
+			result += fmt.Sprintf("%s: OK %s\n", tr, tr.Message)
+		} else {
+			result += fmt.Sprintf("%s: FAIL %s\n", tr, tr.Message)
+		}
+	}
+	return result
+}
+
 // Print prints information about the TLSAinfo TLSA RRset.
 func (t *TLSAinfo) Print() {
 	fmt.Printf("DNS TLSA RRset:\n  qname: %s\n", t.Qname)
