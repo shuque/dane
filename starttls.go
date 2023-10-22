@@ -53,17 +53,23 @@ func DoXMPP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	writer.WriteString(outstring)
 	writer.Flush()
 
-	// read response stream header; look for STARTTLS feature support
-	_, err = reader.Read(buf)
-	if err != nil {
-		return nil, err
-	}
-	line = string(buf)
-	transcript += fmt.Sprintf("recv: %s\n", line)
 	gotSTARTTLS := false
-	if strings.Contains(line, "<starttls") && strings.Contains(line,
-		"urn:ietf:params:xml:ns:xmpp-tls") {
-		gotSTARTTLS = true
+	gotFeatures := false
+	for !gotSTARTTLS && !gotFeatures {
+		// read response stream header; look for STARTTLS feature support
+		_, err = reader.Read(buf)
+		if err != nil {
+			return nil, err
+		}
+		line = string(buf)
+		transcript += fmt.Sprintf("recv: %s\n", line)
+		if strings.Contains(line, "<starttls") && strings.Contains(line,
+			"urn:ietf:params:xml:ns:xmpp-tls") {
+			gotSTARTTLS = true
+		}
+		if strings.Contains(line, "features") {
+			gotFeatures = true
+		}
 	}
 	if !gotSTARTTLS {
 		return nil, fmt.Errorf("XMPP STARTTLS unavailable")
