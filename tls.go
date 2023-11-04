@@ -165,14 +165,13 @@ func TLShandshake(conn net.Conn, config *tls.Config) (*tls.Conn, error) {
 // defined in Config using tls.DialWithDialer().
 func DialTLS(daneconfig *Config) (*tls.Conn, error) {
 
-	var err error
-	var conn *tls.Conn
-
 	config := GetTLSconfig(daneconfig)
-	dialer := getDialer(daneconfig.TimeoutTCP)
-	conn, err = tls.DialWithDialer(dialer, "tcp",
-		daneconfig.Server.Address(), config)
-	return conn, err
+	conn, err := getTCPconn(daneconfig.Server.Ipaddr, daneconfig.Server.Port, daneconfig.TimeoutTCP)
+	if err != nil {
+		return nil, err
+	}
+	tls := tls.Client(conn, config)
+	return tls, nil
 }
 
 // DialStartTLS takes a pointer to an initialized dane Config structure,
