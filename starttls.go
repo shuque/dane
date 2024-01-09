@@ -72,7 +72,7 @@ func DoXMPP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	// issue STARTTLS command
 	outstring = "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>"
 	transcript += fmt.Sprintf("send: %s\n", outstring)
-	writer.WriteString(outstring + "\r\n")
+	writer.WriteString(outstring)
 	writer.Flush()
 
 	// read response and look for proceed element
