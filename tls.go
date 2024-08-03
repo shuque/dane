@@ -47,7 +47,7 @@ func verifyChain(certs []*x509.Certificate, config *tls.Config,
 // Config data structure that performs DANE and PKIX authentication of
 // the server certificate as appropriate.
 func verifyServer(rawCerts [][]byte,
-	verifiedChains [][]*x509.Certificate,
+	_ [][]*x509.Certificate,
 	tlsconfig *tls.Config, daneconfig *Config) error {
 
 	var err error

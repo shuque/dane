@@ -8,7 +8,7 @@ package dane
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 )
@@ -35,7 +35,7 @@ func TestGetHttpClient(t *testing.T) {
 		defer response.Body.Close()
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatalf("Reading HTTP response body: %s\n", err.Error())
 	}

@@ -1,18 +1,19 @@
 # dane
+
 Go library for DANE TLSA authentication
 
-### Pre-requisites
+## Pre-requisites
 
 * Go
 * Go dns package from https://github.com/miekg/dns
 
-### Documentation
+## Documentation
 
 Formatted documentation for this module can be found at:
 
 https://pkg.go.dev/github.com/shuque/dane?tab=doc
 
-### Description
+## Description
 
 Package dane provides a set of functions to perform DANE authentication
 of a TLS server, with fall back to PKIX authentication if no DANE TLSA
@@ -74,12 +75,11 @@ will return a working TLS connection handle even if server authentication
 fails (rather than an error), but will populate the dane.Config's DiagError
 member with the appropriate error instead.
 
-
-### Example code
+## Example code
 
 The basic steps in summary form are:
 
-```
+```go
 import (
     ...
     "github.com/shuque/dane"
@@ -94,24 +94,24 @@ tlsa, err := dane.GetTLSA(resolver, hostname, port)
 iplist, err := dane.GetAddresses(resolver, hostname, true)
 
 for _, ip := range iplist {
-	daneconfig := dane.NewConfig(hostname, ip, 443)
-	daneconfig.SetTLSA(tlsa)
-	conn, err := dane.DialTLS(daneconfig)
-	if err != nil {
-		fmt.Printf("Result: FAILED: %s\n", err.Error())
-		continue
-	}
-	if daneconfig.Okdane {
-		fmt.Printf("Result: DANE OK\n")
-	} else if daneconfig.Okpkix {
-		fmt.Printf("Result: PKIX OK\n")
-	} else {
-		fmt.Printf("Result: FAILED\n")
-	}
-	//
-	// do some stuff with the obtained TLS connection here
-	//
-	conn.Close()
+  daneconfig := dane.NewConfig(hostname, ip, 443)
+  daneconfig.SetTLSA(tlsa)
+  conn, err := dane.DialTLS(daneconfig)
+  if err != nil {
+    fmt.Printf("Result: FAILED: %s\n", err.Error())
+    continue
+  }
+  if daneconfig.Okdane {
+    fmt.Printf("Result: DANE OK\n")
+  } else if daneconfig.Okpkix {
+    fmt.Printf("Result: PKIX OK\n")
+  } else {
+    fmt.Printf("Result: FAILED\n")
+  }
+  //
+  // do some stuff with the obtained TLS connection here
+  //
+  conn.Close()
 }
 ```
 
