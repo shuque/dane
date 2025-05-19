@@ -146,15 +146,8 @@ func GetTLSconfig(daneconfig *Config) *tls.Config {
 	return config
 }
 
-// TLShandshake takes a network connection and a TLS Config structure,
-// negotiates TLS on the connection and returns a TLS connection on
-// success. It sets error to non-nil on failure.
-func TLShandshake(conn net.Conn, config *tls.Config) (*tls.Conn, error) {
-
-	tlsconn := tls.Client(conn, config)
-	err := tlsconn.Handshake()
-	return tlsconn, err
-}
+// TLSDial is a package-level variable to allow for mocking in tests
+var TLSDial = tls.DialWithDialer
 
 // DialTLS takes a pointer to an initialized dane Config structure,
 // establishes and returns a TLS connection. The error return parameter
@@ -162,16 +155,14 @@ func TLShandshake(conn net.Conn, config *tls.Config) (*tls.Conn, error) {
 //
 // DialTLS obtains a TLS config structure initialized with Dane
 // verification callbacks, and connects to the server network address
-// defined in Config using tls.DialWithDialer().
+// defined in Config using TLSDial.
 func DialTLS(daneconfig *Config) (*tls.Conn, error) {
-
 	var err error
 	var conn *tls.Conn
 
 	config := GetTLSconfig(daneconfig)
 	dialer := getDialer(daneconfig.TimeoutTCP)
-	conn, err = tls.DialWithDialer(dialer, "tcp",
-		daneconfig.Server.Address(), config)
+	conn, err = TLSDial(dialer, "tcp", daneconfig.Server.Address(), config)
 	return conn, err
 }
 
@@ -192,4 +183,13 @@ func DialStartTLS(daneconfig *Config) (*tls.Conn, error) {
 	config := GetTLSconfig(daneconfig)
 	conn, err = StartTLS(config, daneconfig)
 	return conn, err
+}
+
+// TLShandshake takes a network connection and a TLS Config structure,
+// negotiates TLS on the connection and returns a TLS connection on
+// success. It sets error to non-nil on failure.
+func TLShandshake(conn net.Conn, config *tls.Config) (*tls.Conn, error) {
+	tlsconn := tls.Client(conn, config)
+	err := tlsconn.Handshake()
+	return tlsconn, err
 }

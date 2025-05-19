@@ -8,19 +8,15 @@ import (
 	"github.com/miekg/dns"
 )
 
-//
 // Query contains parameters of a DNS query: name, type, and class.
-//
 type Query struct {
 	Name  string
 	Type  uint16
 	Class uint16
 }
 
-//
 // NewQuery returns an initialized Query structure from the given query
 // parameters.
-//
 func NewQuery(qname string, qtype uint16, qclass uint16) *Query {
 	q := new(Query)
 	q.Name = dns.Fqdn(qname)
@@ -29,10 +25,8 @@ func NewQuery(qname string, qtype uint16, qclass uint16) *Query {
 	return q
 }
 
-//
 // MakeQuery constructs a DNS query message (*dns.Msg) from the given
 // query and resolver parameters.
-//
 func makeQueryMessage(query *Query, resolver *Resolver) *dns.Msg {
 
 	m := new(dns.Msg)
@@ -47,10 +41,8 @@ func makeQueryMessage(query *Query, resolver *Resolver) *dns.Msg {
 	return m
 }
 
-//
 // SendQueryUDP sends a DNS query via UDP with timeout and retries if
 // necessary.
-//
 func sendQueryUDP(query *Query, resolver *Resolver) (*dns.Msg, error) {
 
 	var response *dns.Msg
@@ -79,9 +71,7 @@ func sendQueryUDP(query *Query, resolver *Resolver) (*dns.Msg, error) {
 	return nil, err
 }
 
-//
 // SendQueryTCP sends a DNS query via TCP.
-//
 func sendQueryTCP(query *Query, resolver *Resolver) (*dns.Msg, error) {
 
 	var response *dns.Msg
@@ -103,9 +93,10 @@ func sendQueryTCP(query *Query, resolver *Resolver) (*dns.Msg, error) {
 
 }
 
-//
+// SendQuery is a package-level variable to allow for mocking in tests
+var SendQuery = sendQuery
+
 // SendQuery sends a DNS query via UDP with fallback to TCP upon truncation.
-//
 func sendQuery(query *Query, resolver *Resolver) (*dns.Msg, error) {
 
 	var response *dns.Msg
@@ -126,10 +117,8 @@ func sendQuery(query *Query, resolver *Resolver) (*dns.Msg, error) {
 	return response, err
 }
 
-//
 // responseOK determines whether we have an authoritative response in
 // the given DNS message (NOERROR or NXDOMAIN).
-//
 func responseOK(response *dns.Msg) bool {
 
 	switch response.MsgHdr.Rcode {
@@ -140,9 +129,7 @@ func responseOK(response *dns.Msg) bool {
 	}
 }
 
-//
 // GetAddresses obtains a list of IPv4 and IPv6 addresses for given hostname.
-//
 func GetAddresses(resolver *Resolver, hostname string, secure bool) ([]net.IP, error) {
 
 	var ipList []net.IP
@@ -158,7 +145,7 @@ func GetAddresses(resolver *Resolver, hostname string, secure bool) ([]net.IP, e
 
 	for _, rrtype := range rrTypes {
 		q = NewQuery(hostname, rrtype, dns.ClassINET)
-		response, err := sendQuery(q, resolver)
+		response, err := SendQuery(q, resolver)
 		if err != nil {
 			return nil, err
 		}
@@ -187,12 +174,10 @@ func GetAddresses(resolver *Resolver, hostname string, secure bool) ([]net.IP, e
 	return ipList, nil
 }
 
-//
 // Message2TSLAinfo returns a populated TLSAinfo structure from the
 // contents of a given dns message that contains a response to a
 // TLSA query. The qname parameter provides the expected TLSA query
 // name string.
-//
 func Message2TSLAinfo(qname string, message *dns.Msg) *TLSAinfo {
 
 	var tr *TLSArdata
@@ -216,10 +201,8 @@ func Message2TSLAinfo(qname string, message *dns.Msg) *TLSAinfo {
 	return tlsa
 }
 
-//
 // GetTLSA returns the DNS TLSA RRset information for the given hostname,
 // port and resolver parameters.
-//
 func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 
 	var q *Query
@@ -227,7 +210,7 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 	qname := fmt.Sprintf("_%d._tcp.%s", port, hostname)
 
 	q = NewQuery(qname, dns.TypeTLSA, dns.ClassINET)
-	response, err := sendQuery(q, resolver)
+	response, err := SendQuery(q, resolver)
 
 	if err != nil {
 		return nil, err
