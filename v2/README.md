@@ -29,7 +29,7 @@ builds the owner name `_443._tcp.host.`. `ResolverFromConf("")` reads
 
 ## Trust model
 
-Queries set RD=1, AD=1 and EDNS0 DO=1, with a UDP payload of default 1232 (`Resolver.Payload`). A
+Queries set RD=1, AD=1 and EDNS0 DO=1, with a default UDP payload of 1232 (`Resolver.Payload`). A
 truncated (TC=1) UDP response is retried over TCP. The library does not
 validate DNSSEC itself. It trusts the AD bit in the response from the
 configured resolver, so that resolver must be a validating one and the path
