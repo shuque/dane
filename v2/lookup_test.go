@@ -159,3 +159,28 @@ func TestServiceName(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestTLSAFromRRInvalidHex(t *testing.T) {
+	for _, h := range []string{"abc", "zz", "aazz"} {
+		got := tlsaFromRR(&dns.TLSA{Usage: 3, Selector: 1, MatchingType: 1, Certificate: h})
+		if got.Data != nil || got.Usage != 3 {
+			t.Fatalf("%q: %+v", h, got)
+		}
+	}
+}
+
+func TestLookupDNAMESynthesized(t *testing.T) {
+	srv := danetest.NewDNSServer(t)
+	srv.Set("a._device.example.com.", dns.TypeTLSA, danetest.Answer{AD: true, Answer: []dns.RR{
+		rr(t, "example.com. 300 IN DNAME example.net."),
+		rr(t, "a._device.example.com. 300 IN CNAME a._device.example.net."),
+		rr(t, "a._device.example.net. 300 IN TLSA 3 1 1 aabbcc"),
+	}})
+	set, err := lookup(t, srv, "a._device.example.com.")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if set.Owner != "a._device.example.net." || len(set.Aliases) != 1 || len(set.Records) != 1 {
+		t.Fatalf("%+v", set)
+	}
+}

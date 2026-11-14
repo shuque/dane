@@ -58,7 +58,8 @@ func (e *LookupError) Unwrap() []error {
 const maxCNAMEHops = 8
 
 // LookupTLSA queries for TLSA records at qname via a validating
-// resolver, following CNAMEs in the answer. Any error is a *LookupError.
+// resolver, following CNAMEs in the answer. DNAME is handled via the
+// CNAME that the validating resolver synthesizes. Any error is a *LookupError.
 func (r *Resolver) LookupTLSA(ctx context.Context, qname string) (*RRset, error) {
 	qname = dns.CanonicalName(qname)
 	fail := func(rcode int, neg uint32, sentinel, cause error) error {
@@ -107,19 +108,28 @@ func (r *Resolver) LookupTLSA(ctx context.Context, qname string) (*RRset, error)
 		if !ok || dns.CanonicalName(t.Hdr.Name) != set.Owner {
 			continue
 		}
-		data, _ := hex.DecodeString(t.Certificate) // undecodable: keep data-less (unusable)
-		set.Records = append(set.Records, TLSA{
-			Usage:        Usage(t.Usage),
-			Selector:     Selector(t.Selector),
-			MatchingType: MatchingType(t.MatchingType),
-			Data:         data,
-		})
+		set.Records = append(set.Records, tlsaFromRR(t))
 		set.TTL = min(set.TTL, t.Hdr.Ttl)
 	}
 	if len(set.Records) == 0 {
 		return nil, fail(resp.Rcode, negTTL(resp), ErrNoData, nil)
 	}
 	return set, nil
+}
+
+// tlsaFromRR converts a wire TLSA RR. Undecodable hex yields a record
+// with nil Data (unusable) rather than failing the lookup.
+func tlsaFromRR(t *dns.TLSA) TLSA {
+	data, err := hex.DecodeString(t.Certificate)
+	if err != nil {
+		data = nil
+	}
+	return TLSA{
+		Usage:        Usage(t.Usage),
+		Selector:     Selector(t.Selector),
+		MatchingType: MatchingType(t.MatchingType),
+		Data:         data,
+	}
 }
 
 // negTTL returns min(SOA TTL, SOA MINIMUM) from the authority section.
