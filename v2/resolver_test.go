@@ -3,6 +3,7 @@ package dane
 import (
 	"context"
 	"errors"
+	"net"
 	"reflect"
 	"testing"
 	"time"
@@ -93,5 +94,25 @@ func TestNewResolverDefaults(t *testing.T) {
 	r = NewResolver("::1")
 	if !reflect.DeepEqual(r.Servers, []string{"[::1]:53"}) {
 		t.Errorf("%v", r.Servers)
+	}
+}
+
+func TestResolverFailover(t *testing.T) {
+	// A port with nothing listening (UDP gets ICMP refused, TCP gets RST).
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dead := ln.Addr().String()
+	ln.Close()
+
+	s := danetest.NewDNSServer(t)
+	s.Set("a.example.", dns.TypeTLSA, danetest.Answer{AD: true, Answer: []dns.RR{tlsaRR(t)}})
+	r := NewResolver(dead, s.Addr)
+	r.Retries = 1
+	r.Timeout = 500 * time.Millisecond
+	m, err := r.Exchange(context.Background(), "a.example.", dns.TypeTLSA)
+	if err != nil || len(m.Answer) != 1 {
+		t.Fatalf("m=%v err=%v", m, err)
 	}
 }

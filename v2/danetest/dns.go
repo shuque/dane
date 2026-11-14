@@ -17,7 +17,9 @@ type Answer struct {
 	Answer   []dns.RR
 	Ns       []dns.RR
 	Delay    time.Duration
-	Truncate bool // UDP response has TC=1 with no answers; TCP gets the full answer
+	Truncate bool   // UDP response has TC=1 with no answers; TCP gets the full answer
+	Drop     bool   // never answer (the query is held until the server shuts down)
+	Question string // if set, echoed as the question name instead of the query's
 }
 
 type key struct {
@@ -133,6 +135,13 @@ func (s *DNSServer) handle(w dns.ResponseWriter, req *dns.Msg) {
 		resp.Rcode = dns.RcodeServerFailure
 		w.WriteMsg(resp)
 		return
+	}
+	if a.Drop {
+		<-s.done
+		return
+	}
+	if a.Question != "" {
+		resp.Question[0].Name = a.Question
 	}
 	if a.Delay > 0 {
 		select {

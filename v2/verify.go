@@ -10,6 +10,9 @@ import (
 )
 
 // Role says which side of the TLS connection is being authenticated.
+//
+// The zero value is RoleServer; client-authentication callers must set
+// RoleClient explicitly.
 type Role int
 
 const (
@@ -21,7 +24,7 @@ const (
 type VerifyOptions struct {
 	Role             Role
 	Name             string         // reference identity: ClientName (client role) or server hostname (server role)
-	AllowedUsages    []Usage        // nil = all four
+	AllowedUsages    []Usage        // nil = all four usages; empty non-nil = none (fails closed)
 	Roots            *x509.CertPool // PKIX roots for usages 0/1; nil = x509.SystemCertPool()
 	DigestPreference []MatchingType // strongest first; nil = [MatchSHA512, MatchSHA256]
 	CurrentTime      time.Time      // zero = time.Now()
@@ -55,9 +58,12 @@ func (s RecordStatus) String() string {
 type RecordResult struct {
 	Record TLSA
 	Status RecordStatus
-	Depth  int    // chain depth of the matched cert (0 = EE); -1 if none
+	// Depth locates the matched cert. DANE-TA: index in the presented
+	// chain (1 for a "2 0 0" cert taken from the record). PKIX-TA: index
+	// in the verified chain (may be a pool root). EE usages: 0. -1 if none.
+	Depth  int
 	Detail string // human-readable reason
-	err    error  // cause for StatusFailed (e.g. ErrNameMismatch)
+	Err    error  // typed cause for StatusFailed (e.g. ErrNameMismatch); nil otherwise
 }
 
 // Result is the outcome of Verify.
@@ -104,7 +110,7 @@ func Verify(chain []*x509.Certificate, rrset *RRset, opts VerifyOptions) (*Resul
 		if rec.Status == StatusMatched && res.Matched == nil {
 			res.Matched = rec
 		}
-		if rec.Status == StatusFailed && errors.Is(rec.err, ErrNameMismatch) {
+		if rec.Status == StatusFailed && errors.Is(rec.Err, ErrNameMismatch) {
 			nameMismatch = true
 		}
 	}
@@ -206,7 +212,7 @@ func evalRecord(rec *RecordResult, chain []*x509.Certificate, opts VerifyOptions
 func fail(rec *RecordResult, err error, detail string) {
 	rec.Status = StatusFailed
 	rec.Depth = -1
-	rec.err = err
+	rec.Err = err
 	rec.Detail = detail
 }
 
@@ -236,8 +242,11 @@ func intermediates(chain []*x509.Certificate) *x509.CertPool {
 func checkName(ee *x509.Certificate, opts VerifyOptions) error {
 	if opts.Role == RoleClient {
 		want := strings.TrimSuffix(opts.Name, ".")
+		if !validClientName(want) {
+			return fmt.Errorf("%w: invalid client name %q", ErrNameMismatch, want)
+		}
 		for _, n := range ee.DNSNames {
-			if strings.EqualFold(n, want) {
+			if asciiEqualFold(n, want) {
 				return nil
 			}
 		}
@@ -247,6 +256,49 @@ func checkName(ee *x509.Certificate, opts VerifyOptions) error {
 		return fmt.Errorf("%w: %v", ErrNameMismatch, err)
 	}
 	return nil
+}
+
+// validClientName reports whether name (one trailing dot already
+// removed) is non-empty, has no empty label, and uses only [A-Za-z0-9_.-].
+func validClientName(name string) bool {
+	if name == "" {
+		return false
+	}
+	prev := byte('.')
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '_', c == '-':
+		case c == '.':
+			if prev == '.' {
+				return false
+			}
+		default:
+			return false
+		}
+		prev = c
+	}
+	return prev != '.'
+}
+
+// asciiEqualFold compares a and b folding only ASCII A-Z.
+func asciiEqualFold(a, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		x, y := a[i], b[i]
+		if x >= 'A' && x <= 'Z' {
+			x += 'a' - 'A'
+		}
+		if y >= 'A' && y <= 'Z' {
+			y += 'a' - 'A'
+		}
+		if x != y {
+			return false
+		}
+	}
+	return true
 }
 
 // nameCheckOutcome finishes a record whose data and chain checks passed.
@@ -273,6 +325,8 @@ func verifyDANETA(rec *RecordResult, chain []*x509.Certificate, opts VerifyOptio
 	}
 	if len(cands) == 0 && rec.Record.Selector == SelectorCert && rec.Record.MatchingType == MatchFull {
 		// RFC 7671 section 5.2: a 2 0 0 TA need not be in the presented chain.
+		// The record's cert is then the sole root; if the EE cert is
+		// self-signed this may be the EE cert itself.
 		if c, err := x509.ParseCertificate(rec.Record.Data); err == nil {
 			cands = append(cands, cand{c, 1})
 		}

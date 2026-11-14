@@ -29,7 +29,7 @@ builds the owner name `_443._tcp.host.`. `ResolverFromConf("")` reads
 
 ## Trust model
 
-Queries set RD=1, AD=1 and EDNS0 DO=1, with a UDP payload of 1232. A
+Queries set RD=1, AD=1 and EDNS0 DO=1, with a UDP payload of default 1232 (`Resolver.Payload`). A
 truncated (TC=1) UDP response is retried over TCP. The library does not
 validate DNSSEC itself. It trusts the AD bit in the response from the
 configured resolver, so that resolver must be a validating one and the path
@@ -37,13 +37,13 @@ to it must be trusted (for example, a resolver on localhost).
 
 ## Roles
 
-`VerifyOptions.Role` selects `RoleServer` (default) or `RoleClient`.
+`VerifyOptions.Role` selects `RoleServer` (the zero value, so client callers must set `RoleClient` explicitly) or `RoleClient`.
 
 | | RoleServer | RoleClient |
 |---|---|---|
 | EKU required (PKIX/DANE-TA chain checks) | serverAuth | clientAuth |
 | `Name` is | server hostname | ClientName |
-| Name check | `x509.VerifyHostname` (wildcards allowed) | SAN dNSName equals `Name` exactly, case-insensitive, ignoring one trailing dot; no wildcards |
+| Name check | `x509.VerifyHostname` (wildcards allowed) | SAN dNSName equals `Name` exactly, ASCII case-insensitive, ignoring one trailing dot; no wildcards. A `Name` with bytes outside `[A-Za-z0-9_.-]` or an empty label always fails |
 
 DANE-EE (usage 3) does no name check and no expiry check (RFC 7671 s5.1):
 a matching end-entity certificate is enough. The other usages (PKIX-TA,
@@ -97,4 +97,4 @@ records so that `Verify` can report them as skipped.
 ## Testing
 
 `go test ./...` runs offline unit tests using an in-process DNS server and
-generated certificates. `danetest/` contains the test helpers.
+generated certificates. `danetest/` has certificate generators and an in-process UDP/TCP fake DNS server for tests.

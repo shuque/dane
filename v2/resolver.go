@@ -14,7 +14,7 @@ import (
 // relies on its AD bit for DNSSEC authentication.
 type Resolver struct {
 	Servers []string      // "host:port"; IPv6 in brackets
-	Timeout time.Duration // per attempt; default 2s
+	Timeout time.Duration // per attempt (UDP and any TCP retry share it); default 2s
 	Retries int           // attempts per server; default 3
 	Payload uint16        // EDNS0 UDP size; default 1232
 }
@@ -40,7 +40,9 @@ func trimBrackets(s string) string {
 }
 
 // ResolverFromConf builds a Resolver from a resolv.conf file
-// ("" means /etc/resolv.conf).
+// ("" means /etc/resolv.conf). miekg/dns's parser supplies its own
+// timeout and attempts (5s and 2) when the file has no "options"
+// line, so the NewResolver defaults do not apply in that case.
 func ResolverFromConf(path string) (*Resolver, error) {
 	if path == "" {
 		path = "/etc/resolv.conf"
@@ -98,7 +100,7 @@ func (r *Resolver) Exchange(ctx context.Context, qname string, qtype uint16) (*d
 			if err := ctx.Err(); err != nil {
 				return nil, ctxErr(err, lastErr)
 			}
-			resp, err := r.attempt(ctx, q, server, timeout)
+			resp, err := r.attempt(ctx, q, server, timeout, payload)
 			if err == nil {
 				return resp, nil
 			}
@@ -118,22 +120,36 @@ func ctxErr(ctxErr, last error) error {
 	return fmt.Errorf("%w: %w", ctxErr, last)
 }
 
-func (r *Resolver) attempt(ctx context.Context, q *dns.Msg, server string, timeout time.Duration) (*dns.Msg, error) {
+// attempt performs one UDP exchange (with TCP fallback on truncation).
+// It dials explicitly and arms a deadline on cancellation, because
+// miekg/dns ExchangeContext honours only context deadlines, not
+// cancellation.
+func (r *Resolver) attempt(ctx context.Context, q *dns.Msg, server string, timeout time.Duration, payload uint16) (*dns.Msg, error) {
 	actx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	q = q.Copy()
 	q.Id = dns.Id()
-	c := &dns.Client{Net: "udp", Timeout: timeout, UDPSize: r.Payload}
-	resp, _, err := c.ExchangeContext(actx, q, server)
+	resp, err := exchangeOnce(actx, &dns.Client{Net: "udp", Timeout: timeout, UDPSize: payload}, q, server)
 	if err != nil {
 		return nil, err
 	}
 	if resp.Truncated {
-		tc := &dns.Client{Net: "tcp", Timeout: timeout}
-		resp, _, err = tc.ExchangeContext(actx, q, server)
-		if err != nil {
-			return nil, err
-		}
+		return exchangeOnce(actx, &dns.Client{Net: "tcp", Timeout: timeout}, q, server)
 	}
 	return resp, nil
+}
+
+func exchangeOnce(ctx context.Context, c *dns.Client, q *dns.Msg, server string) (*dns.Msg, error) {
+	co, err := c.DialContext(ctx, server)
+	if err != nil {
+		return nil, err
+	}
+	defer co.Close()
+	stop := context.AfterFunc(ctx, func() { co.SetDeadline(time.Unix(1, 0)) })
+	defer stop()
+	resp, _, err := c.ExchangeWithConnContext(ctx, q, co)
+	if err != nil && ctx.Err() != nil {
+		err = fmt.Errorf("%w: %w", ctx.Err(), err)
+	}
+	return resp, err
 }

@@ -188,7 +188,7 @@ func TestDANETATANotInChainDigest(t *testing.T) {
 	leaf, _ := danetest.NewLeaf(t, ca, key, danetest.CertOpts{DNSNames: []string{"dev1.example.com"}})
 	res, err := Verify(chainOf(leaf), rrs(mustTLSA(t, DANETA, SelectorCert, MatchSHA256, ca)),
 		VerifyOptions{Role: RoleClient, Name: "dev1.example.com"})
-	if err == nil || res.Authenticated {
+	if err == nil || res.Authenticated || res.Records[0].Status != StatusNoMatch {
 		t.Fatalf("res=%+v err=%v", res, err)
 	}
 }
@@ -234,6 +234,9 @@ func TestDANETAClientEKU(t *testing.T) {
 			if res.Authenticated != c.ok {
 				t.Fatalf("got %v want %v: %+v", res.Authenticated, c.ok, res.Records[0])
 			}
+			if !c.ok && res.Records[0].Status != StatusFailed {
+				t.Fatalf("status=%v", res.Records[0].Status)
+			}
 		})
 	}
 }
@@ -247,7 +250,7 @@ func TestDANETAExpiredLeaf(t *testing.T) {
 	})
 	res, err := Verify(chainOf(leaf, ca), rrs(mustTLSA(t, DANETA, SelectorCert, MatchSHA256, ca)),
 		VerifyOptions{Role: RoleClient, Name: "dev1.example.com"})
-	if err == nil || res.Authenticated {
+	if err == nil || res.Authenticated || res.Records[0].Status != StatusFailed {
 		t.Fatalf("res=%+v err=%v", res, err)
 	}
 }
@@ -304,6 +307,62 @@ func TestServerNameWildcard(t *testing.T) {
 	res, err := Verify(chainOf(leaf, ca), rrs(mustTLSA(t, DANETA, SelectorCert, MatchSHA256, ca)),
 		VerifyOptions{Role: RoleServer, Name: "www.example.com"})
 	if err != nil || !res.Authenticated {
+		t.Fatalf("res=%+v err=%v", res, err)
+	}
+}
+
+func TestPKIXTANegative(t *testing.T) {
+	ca, key := danetest.NewCA(t, "ca")
+	other, _ := danetest.NewCA(t, "other")
+	leaf, _ := danetest.NewLeaf(t, ca, key, danetest.CertOpts{DNSNames: []string{"www.example.com"}})
+	res, err := Verify(chainOf(leaf), rrs(mustTLSA(t, PKIXTA, SelectorCert, MatchSHA256, other)),
+		VerifyOptions{Role: RoleServer, Name: "www.example.com", Roots: poolOf(ca)})
+	if !errors.Is(err, ErrNotAuthenticated) || res.Authenticated || res.Records[0].Status != StatusNoMatch {
+		t.Fatalf("res=%+v err=%v", res, err)
+	}
+}
+
+func TestDANETA200SelfSignedEE(t *testing.T) {
+	ee, _ := danetest.NewSelfSigned(t, danetest.CertOpts{DNSNames: []string{"dev1.example.com"}})
+	res, err := Verify(chainOf(ee), rrs(mustTLSA(t, DANETA, SelectorCert, MatchFull, ee)),
+		VerifyOptions{Role: RoleClient, Name: "dev1.example.com"})
+	if err != nil || !res.Authenticated {
+		t.Fatalf("res=%+v err=%v", res, err)
+	}
+}
+
+func clientNameCase(t *testing.T, san, name string) (*Result, error) {
+	t.Helper()
+	ca, key := danetest.NewCA(t, "ca")
+	leaf, _ := danetest.NewLeaf(t, ca, key, danetest.CertOpts{DNSNames: []string{san}})
+	return Verify(chainOf(leaf, ca), rrs(mustTLSA(t, DANETA, SelectorCert, MatchSHA256, ca)),
+		VerifyOptions{Role: RoleClient, Name: name})
+}
+
+func TestClientNameNoWildcardMatch(t *testing.T) {
+	res, err := clientNameCase(t, "*.example.com", "www.example.com")
+	if res.Authenticated || !errors.Is(err, ErrNameMismatch) || res.Records[0].Status != StatusFailed {
+		t.Fatalf("res=%+v err=%v", res, err)
+	}
+}
+
+func TestClientNameLiteralWildcardRejected(t *testing.T) {
+	res, err := clientNameCase(t, "*.example.com", "*.example.com")
+	if res.Authenticated || !errors.Is(err, ErrNameMismatch) {
+		t.Fatalf("res=%+v err=%v", res, err)
+	}
+}
+
+func TestClientNameNonASCIIFold(t *testing.T) {
+	res, err := clientNameCase(t, "key.example.com", "\u212aey.example.com")
+	if res.Authenticated || !errors.Is(err, ErrNameMismatch) {
+		t.Fatalf("res=%+v err=%v", res, err)
+	}
+}
+
+func TestClientNameEmptyLabel(t *testing.T) {
+	res, err := clientNameCase(t, "a..example.com", "a..example.com")
+	if res.Authenticated || !errors.Is(err, ErrNameMismatch) {
 		t.Fatalf("res=%+v err=%v", res, err)
 	}
 }

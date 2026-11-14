@@ -3,6 +3,7 @@ package dane
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -182,5 +183,76 @@ func TestLookupDNAMESynthesized(t *testing.T) {
 	}
 	if set.Owner != "a._device.example.net." || len(set.Aliases) != 1 || len(set.Records) != 1 {
 		t.Fatalf("%+v", set)
+	}
+}
+
+func TestLookupCancelPrompt(t *testing.T) {
+	srv := danetest.NewDNSServer(t)
+	srv.Set("a.", dns.TypeTLSA, danetest.Answer{AD: true, Drop: true})
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(100*time.Millisecond, cancel)
+	start := time.Now()
+	_, err := NewResolver(srv.Addr).LookupTLSA(ctx, "a.")
+	if d := time.Since(start); d > 500*time.Millisecond {
+		t.Fatalf("took %v", d)
+	}
+	if !errors.Is(err, context.Canceled) || !errors.Is(err, ErrTimeout) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestLookupCNAMELoop(t *testing.T) {
+	srv := danetest.NewDNSServer(t)
+	srv.Set("a.", dns.TypeTLSA, danetest.Answer{AD: true, Answer: []dns.RR{
+		rr(t, "a. 300 IN CNAME b."),
+		rr(t, "b. 300 IN CNAME a."),
+	}})
+	_, err := lookup(t, srv, "a.")
+	if !errors.Is(err, ErrServFail) || errors.Is(err, ErrNoData) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestLookupCNAMETooLong(t *testing.T) {
+	srv := danetest.NewDNSServer(t)
+	var ans []dns.RR
+	for i := 0; i < 10; i++ {
+		ans = append(ans, rr(t, fmt.Sprintf("h%d. 300 IN CNAME h%d.", i, i+1)))
+	}
+	ans = append(ans, rr(t, "h10. 300 IN TLSA 3 1 1 aabbcc"))
+	srv.Set("h0.", dns.TypeTLSA, danetest.Answer{AD: true, Answer: ans})
+	_, err := lookup(t, srv, "h0.")
+	if !errors.Is(err, ErrServFail) || errors.Is(err, ErrNoData) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestLookupQuestionMismatch(t *testing.T) {
+	srv := danetest.NewDNSServer(t)
+	srv.Set("a.", dns.TypeTLSA, danetest.Answer{AD: true, Question: "evil.", Answer: []dns.RR{
+		rr(t, "a. 300 IN TLSA 3 1 1 aabbcc"),
+	}})
+	_, err := lookup(t, srv, "a.")
+	if !errors.Is(err, ErrServFail) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestLookupInsecureNODATA(t *testing.T) {
+	srv := danetest.NewDNSServer(t)
+	srv.Set("a.example.", dns.TypeTLSA, danetest.Answer{Ns: []dns.RR{rr(t, soa)}})
+	_, err := lookup(t, srv, "a.example.")
+	if !errors.Is(err, ErrInsecure) || errors.Is(err, ErrNoData) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestLookupREFUSED(t *testing.T) {
+	srv := danetest.NewDNSServer(t)
+	srv.Set("a.", dns.TypeTLSA, danetest.Answer{Rcode: dns.RcodeRefused, AD: true})
+	_, err := lookup(t, srv, "a.")
+	var le *LookupError
+	if !errors.Is(err, ErrServFail) || !errors.As(err, &le) || le.Rcode != dns.RcodeRefused {
+		t.Fatalf("err = %v", err)
 	}
 }

@@ -85,9 +85,15 @@ func (r *Resolver) LookupTLSA(ctx context.Context, qname string) (*RRset, error)
 		return nil, fail(resp.Rcode, negTTL(resp), ErrNXDOMAIN, nil)
 	}
 
+	if len(resp.Question) != 1 || dns.CanonicalName(resp.Question[0].Name) != qname ||
+		resp.Question[0].Qtype != dns.TypeTLSA {
+		return nil, fail(resp.Rcode, 0, ErrServFail, errors.New("response question does not match query"))
+	}
+
 	set := &RRset{Qname: qname, Owner: qname}
 	set.TTL = ^uint32(0)
-	for hop := 0; hop < maxCNAMEHops; hop++ {
+	seen := map[string]bool{qname: true}
+	for {
 		var next string
 		for _, rr := range resp.Answer {
 			if c, ok := rr.(*dns.CNAME); ok && dns.CanonicalName(c.Hdr.Name) == set.Owner {
@@ -99,6 +105,10 @@ func (r *Resolver) LookupTLSA(ctx context.Context, qname string) (*RRset, error)
 		if next == "" {
 			break
 		}
+		if seen[next] || len(set.Aliases) >= maxCNAMEHops {
+			return nil, fail(resp.Rcode, 0, ErrServFail, errors.New("CNAME loop or chain too long"))
+		}
+		seen[next] = true
 		set.Aliases = append(set.Aliases, next)
 		set.Owner = next
 	}

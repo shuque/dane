@@ -1,5 +1,5 @@
-// Package danetest provides certificate-generation helpers for tests.
-// It must not import package dane.
+// Package danetest provides certificate generators and an in-process
+// UDP/TCP fake DNS server for tests. It must not import package dane.
 package danetest
 
 import (
