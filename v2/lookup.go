@@ -78,16 +78,16 @@ func (r *Resolver) LookupTLSA(ctx context.Context, qname string) (*RRset, error)
 	if resp.Rcode != dns.RcodeSuccess && resp.Rcode != dns.RcodeNameError {
 		return nil, fail(resp.Rcode, 0, ErrServFail, nil)
 	}
+	if len(resp.Question) != 1 || dns.CanonicalName(resp.Question[0].Name) != qname ||
+		resp.Question[0].Qtype != dns.TypeTLSA {
+		return nil, fail(resp.Rcode, 0, ErrServFail, errors.New("response question does not match query"))
+	}
+
 	if !resp.AuthenticatedData {
 		return nil, fail(resp.Rcode, 0, ErrInsecure, nil)
 	}
 	if resp.Rcode == dns.RcodeNameError {
 		return nil, fail(resp.Rcode, negTTL(resp), ErrNXDOMAIN, nil)
-	}
-
-	if len(resp.Question) != 1 || dns.CanonicalName(resp.Question[0].Name) != qname ||
-		resp.Question[0].Qtype != dns.TypeTLSA {
-		return nil, fail(resp.Rcode, 0, ErrServFail, errors.New("response question does not match query"))
 	}
 
 	set := &RRset{Qname: qname, Owner: qname}

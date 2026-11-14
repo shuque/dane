@@ -256,3 +256,12 @@ func TestLookupREFUSED(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestLookupQuestionMismatchNXDOMAIN(t *testing.T) {
+	srv := danetest.NewDNSServer(t)
+	srv.Set("a.example.", dns.TypeTLSA, danetest.Answer{Rcode: dns.RcodeNameError, AD: true, Question: "evil.example.", Ns: []dns.RR{rr(t, soa)}})
+	_, err := lookup(t, srv, "a.example.")
+	if !errors.Is(err, ErrServFail) || errors.Is(err, ErrNXDOMAIN) {
+		t.Fatalf("err = %v", err)
+	}
+}
