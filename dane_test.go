@@ -1,9 +1,7 @@
-package tests
+package dane
 
 import (
 	"testing"
-
-	"github.com/shuque/dane"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -11,7 +9,7 @@ func TestNewConfig(t *testing.T) {
 	ip := "192.0.2.1"
 	port := 443
 
-	config := dane.NewConfig(hostname, ip, port)
+	config := NewConfig(hostname, ip, port)
 	if config == nil {
 		t.Fatal("NewConfig returned nil")
 	}
@@ -38,7 +36,7 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestGetResolver(t *testing.T) {
-	resolver, err := dane.GetResolver("")
+	resolver, err := GetResolver("")
 	if err != nil {
 		t.Fatalf("GetResolver failed: %v", err)
 	}
@@ -48,7 +46,7 @@ func TestGetResolver(t *testing.T) {
 }
 
 func TestNoPKIXfallback(t *testing.T) {
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
+	config := NewConfig("example.com", "192.0.2.1", 443)
 	config.NoPKIXfallback()
 
 	if config.PKIX {
@@ -57,7 +55,7 @@ func TestNoPKIXfallback(t *testing.T) {
 }
 
 func TestDaneEEnameOption(t *testing.T) {
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
+	config := NewConfig("example.com", "192.0.2.1", 443)
 	config.DaneEEname = true
 
 	if !config.DaneEEname {
@@ -66,7 +64,7 @@ func TestDaneEEnameOption(t *testing.T) {
 }
 
 func TestSMTPAnyModeOption(t *testing.T) {
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
+	config := NewConfig("example.com", "192.0.2.1", 443)
 	config.SMTPAnyMode = true
 
 	if !config.SMTPAnyMode {
@@ -75,7 +73,7 @@ func TestSMTPAnyModeOption(t *testing.T) {
 }
 
 func TestDiagMode(t *testing.T) {
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
+	config := NewConfig("example.com", "192.0.2.1", 443)
 	config.SetDiagMode(true)
 
 	if !config.DiagMode {
@@ -84,7 +82,7 @@ func TestDiagMode(t *testing.T) {
 }
 
 func TestSetALPN(t *testing.T) {
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
+	config := NewConfig("example.com", "192.0.2.1", 443)
 	alpnStrings := []string{"h2", "http/1.1"}
 	config.SetALPN(alpnStrings)
 
@@ -100,7 +98,7 @@ func TestSetALPN(t *testing.T) {
 }
 
 func TestSetAppName(t *testing.T) {
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
+	config := NewConfig("example.com", "192.0.2.1", 443)
 	appname := "smtp"
 	config.SetAppName(appname)
 
@@ -110,7 +108,7 @@ func TestSetAppName(t *testing.T) {
 }
 
 func TestSetServiceName(t *testing.T) {
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
+	config := NewConfig("example.com", "192.0.2.1", 443)
 	servicename := "submission"
 	config.SetServiceName(servicename)
 
@@ -121,11 +119,11 @@ func TestSetServiceName(t *testing.T) {
 
 func TestTLSAInfo(t *testing.T) {
 	// Create a test TLSA record
-	tlsa := &dane.TLSAinfo{
+	tlsa := &TLSAinfo{
 		Qname: "_443._tcp.example.com",
-		Rdata: []*dane.TLSArdata{
+		Rdata: []*TLSArdata{
 			{
-				Usage:    dane.DaneEE,
+				Usage:    DaneEE,
 				Selector: 0,
 				Mtype:    1,
 				Data:     "0123456789abcdef",
@@ -133,7 +131,7 @@ func TestTLSAInfo(t *testing.T) {
 		},
 	}
 
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
+	config := NewConfig("example.com", "192.0.2.1", 443)
 	config.SetTLSA(tlsa)
 
 	if config.TLSA == nil {
@@ -154,11 +152,11 @@ func TestTLSAInfo(t *testing.T) {
 }
 
 func TestTLSAUncheck(t *testing.T) {
-	tlsa := &dane.TLSAinfo{
+	tlsa := &TLSAinfo{
 		Qname: "_443._tcp.example.com",
-		Rdata: []*dane.TLSArdata{
+		Rdata: []*TLSArdata{
 			{
-				Usage:    dane.DaneEE,
+				Usage:    DaneEE,
 				Selector: 0,
 				Mtype:    1,
 				Data:     "0123456789abcdef",

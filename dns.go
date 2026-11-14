@@ -93,8 +93,8 @@ func sendQueryTCP(query *Query, resolver *Resolver) (*dns.Msg, error) {
 
 }
 
-// SendQuery is a package-level variable to allow for mocking in tests
-var SendQuery = sendQuery
+// sendQueryFn is the query function; tests replace it with a mock.
+var sendQueryFn = sendQuery
 
 // SendQuery sends a DNS query via UDP with fallback to TCP upon truncation.
 func sendQuery(query *Query, resolver *Resolver) (*dns.Msg, error) {
@@ -145,7 +145,7 @@ func GetAddresses(resolver *Resolver, hostname string, secure bool) ([]net.IP, e
 
 	for _, rrtype := range rrTypes {
 		q = NewQuery(hostname, rrtype, dns.ClassINET)
-		response, err := SendQuery(q, resolver)
+		response, err := sendQueryFn(q, resolver)
 		if err != nil {
 			return nil, err
 		}
@@ -210,7 +210,7 @@ func GetTLSA(resolver *Resolver, hostname string, port int) (*TLSAinfo, error) {
 	qname := fmt.Sprintf("_%d._tcp.%s", port, hostname)
 
 	q = NewQuery(qname, dns.TypeTLSA, dns.ClassINET)
-	response, err := SendQuery(q, resolver)
+	response, err := sendQueryFn(q, resolver)
 
 	if err != nil {
 		return nil, err

@@ -1,4 +1,4 @@
-package tests
+package dane
 
 import (
 	"crypto/tls"
@@ -7,45 +7,44 @@ import (
 	"testing"
 
 	"github.com/miekg/dns"
-	"github.com/shuque/dane"
 )
 
 // Save the original sendQuery function so we can restore it after each test
-var originalSendQuery = dane.SendQuery
+var originalSendQuery = sendQueryFn
 
 // Save the original TLSDial function so we can restore it after each test
-var originalTLSDial = dane.TLSDial
+var originalTLSDial = tlsDialFn
 
 func TestGetTLSAWithDNSError(t *testing.T) {
-	dane.SendQuery = func(query *dane.Query, resolver *dane.Resolver) (*dns.Msg, error) {
+	sendQueryFn = func(query *Query, resolver *Resolver) (*dns.Msg, error) {
 		return nil, errors.New("DNS server error")
 	}
-	defer func() { dane.SendQuery = originalSendQuery }()
+	defer func() { sendQueryFn = originalSendQuery }()
 
-	resolver := dane.NewResolver([]*dane.Server{})
+	resolver := NewResolver([]*Server{})
 	hostname := "example.com"
 	port := 443
 
-	_, err := dane.GetTLSA(resolver, hostname, port)
+	_, err := GetTLSA(resolver, hostname, port)
 	if err == nil {
 		t.Error("Expected error from GetTLSA, got nil")
 	}
 }
 
 func TestGetTLSAWithNoRecords(t *testing.T) {
-	dane.SendQuery = func(query *dane.Query, resolver *dane.Resolver) (*dns.Msg, error) {
+	sendQueryFn = func(query *Query, resolver *Resolver) (*dns.Msg, error) {
 		return &dns.Msg{
 			MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess, AuthenticatedData: true},
 			Answer: []dns.RR{},
 		}, nil
 	}
-	defer func() { dane.SendQuery = originalSendQuery }()
+	defer func() { sendQueryFn = originalSendQuery }()
 
-	resolver := dane.NewResolver([]*dane.Server{})
+	resolver := NewResolver([]*Server{})
 	hostname := "example.com"
 	port := 443
 
-	tlsa, err := dane.GetTLSA(resolver, hostname, port)
+	tlsa, err := GetTLSA(resolver, hostname, port)
 	if err != nil {
 		t.Fatalf("GetTLSA failed: %v", err)
 	}
@@ -56,35 +55,35 @@ func TestGetTLSAWithNoRecords(t *testing.T) {
 }
 
 func TestGetAddressesWithDNSError(t *testing.T) {
-	dane.SendQuery = func(query *dane.Query, resolver *dane.Resolver) (*dns.Msg, error) {
+	sendQueryFn = func(query *Query, resolver *Resolver) (*dns.Msg, error) {
 		return nil, errors.New("DNS server error")
 	}
-	defer func() { dane.SendQuery = originalSendQuery }()
+	defer func() { sendQueryFn = originalSendQuery }()
 
-	resolver := dane.NewResolver([]*dane.Server{})
+	resolver := NewResolver([]*Server{})
 	hostname := "example.com"
 	ipv6 := true
 
-	_, err := dane.GetAddresses(resolver, hostname, ipv6)
+	_, err := GetAddresses(resolver, hostname, ipv6)
 	if err == nil {
 		t.Error("Expected error from GetAddresses, got nil")
 	}
 }
 
 func TestGetAddressesWithNoRecords(t *testing.T) {
-	dane.SendQuery = func(query *dane.Query, resolver *dane.Resolver) (*dns.Msg, error) {
+	sendQueryFn = func(query *Query, resolver *Resolver) (*dns.Msg, error) {
 		return &dns.Msg{
 			MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess, AuthenticatedData: true},
 			Answer: []dns.RR{},
 		}, nil
 	}
-	defer func() { dane.SendQuery = originalSendQuery }()
+	defer func() { sendQueryFn = originalSendQuery }()
 
-	resolver := dane.NewResolver([]*dane.Server{})
+	resolver := NewResolver([]*Server{})
 	hostname := "example.com"
 	ipv6 := true
 
-	iplist, err := dane.GetAddresses(resolver, hostname, ipv6)
+	iplist, err := GetAddresses(resolver, hostname, ipv6)
 	if err != nil {
 		t.Fatalf("GetAddresses failed: %v", err)
 	}
@@ -95,7 +94,7 @@ func TestGetAddressesWithNoRecords(t *testing.T) {
 }
 
 func TestGetAddressesWithIPv4Only(t *testing.T) {
-	dane.SendQuery = func(query *dane.Query, resolver *dane.Resolver) (*dns.Msg, error) {
+	sendQueryFn = func(query *Query, resolver *Resolver) (*dns.Msg, error) {
 		if query.Type == dns.TypeA {
 			return &dns.Msg{
 				MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess, AuthenticatedData: true},
@@ -116,13 +115,13 @@ func TestGetAddressesWithIPv4Only(t *testing.T) {
 			Answer: []dns.RR{},
 		}, nil
 	}
-	defer func() { dane.SendQuery = originalSendQuery }()
+	defer func() { sendQueryFn = originalSendQuery }()
 
-	resolver := dane.NewResolver([]*dane.Server{})
+	resolver := NewResolver([]*Server{})
 	hostname := "example.com"
 	ipv6 := true
 
-	iplist, err := dane.GetAddresses(resolver, hostname, ipv6)
+	iplist, err := GetAddresses(resolver, hostname, ipv6)
 	if err != nil {
 		t.Fatalf("GetAddresses failed: %v", err)
 	}
@@ -137,7 +136,7 @@ func TestGetAddressesWithIPv4Only(t *testing.T) {
 }
 
 func TestGetAddressesWithIPv6Only(t *testing.T) {
-	dane.SendQuery = func(query *dane.Query, resolver *dane.Resolver) (*dns.Msg, error) {
+	sendQueryFn = func(query *Query, resolver *Resolver) (*dns.Msg, error) {
 		if query.Type == dns.TypeAAAA {
 			return &dns.Msg{
 				MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess, AuthenticatedData: true},
@@ -158,13 +157,13 @@ func TestGetAddressesWithIPv6Only(t *testing.T) {
 			Answer: []dns.RR{},
 		}, nil
 	}
-	defer func() { dane.SendQuery = originalSendQuery }()
+	defer func() { sendQueryFn = originalSendQuery }()
 
-	resolver := dane.NewResolver([]*dane.Server{})
+	resolver := NewResolver([]*Server{})
 	hostname := "example.com"
 	ipv6 := true
 
-	iplist, err := dane.GetAddresses(resolver, hostname, ipv6)
+	iplist, err := GetAddresses(resolver, hostname, ipv6)
 	if err != nil {
 		t.Fatalf("GetAddresses failed: %v", err)
 	}
@@ -179,7 +178,7 @@ func TestGetAddressesWithIPv6Only(t *testing.T) {
 }
 
 func TestGetAddressesWithBothIPv4AndIPv6(t *testing.T) {
-	dane.SendQuery = func(query *dane.Query, resolver *dane.Resolver) (*dns.Msg, error) {
+	sendQueryFn = func(query *Query, resolver *Resolver) (*dns.Msg, error) {
 		if query.Type == dns.TypeA {
 			return &dns.Msg{
 				MsgHdr: dns.MsgHdr{Rcode: dns.RcodeSuccess, AuthenticatedData: true},
@@ -215,13 +214,13 @@ func TestGetAddressesWithBothIPv4AndIPv6(t *testing.T) {
 			Answer: []dns.RR{},
 		}, nil
 	}
-	defer func() { dane.SendQuery = originalSendQuery }()
+	defer func() { sendQueryFn = originalSendQuery }()
 
-	resolver := dane.NewResolver([]*dane.Server{})
+	resolver := NewResolver([]*Server{})
 	hostname := "example.com"
 	ipv6 := true
 
-	iplist, err := dane.GetAddresses(resolver, hostname, ipv6)
+	iplist, err := GetAddresses(resolver, hostname, ipv6)
 	if err != nil {
 		t.Fatalf("GetAddresses failed: %v", err)
 	}
@@ -251,13 +250,13 @@ func TestGetAddressesWithBothIPv4AndIPv6(t *testing.T) {
 }
 
 func TestDialTLSSuccess(t *testing.T) {
-	dane.TLSDial = func(dialer *net.Dialer, network, addr string, config *tls.Config) (*tls.Conn, error) {
+	tlsDialFn = func(dialer *net.Dialer, network, addr string, config *tls.Config) (*tls.Conn, error) {
 		return &tls.Conn{}, nil
 	}
-	defer func() { dane.TLSDial = originalTLSDial }()
+	defer func() { tlsDialFn = originalTLSDial }()
 
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
-	conn, err := dane.DialTLS(config)
+	config := NewConfig("example.com", "192.0.2.1", 443)
+	conn, err := DialTLS(config)
 	if err != nil {
 		t.Fatalf("DialTLS failed: %v", err)
 	}
@@ -267,13 +266,13 @@ func TestDialTLSSuccess(t *testing.T) {
 }
 
 func TestDialTLSTLSHandshakeFailure(t *testing.T) {
-	dane.TLSDial = func(dialer *net.Dialer, network, addr string, config *tls.Config) (*tls.Conn, error) {
+	tlsDialFn = func(dialer *net.Dialer, network, addr string, config *tls.Config) (*tls.Conn, error) {
 		return nil, errors.New("TLS handshake failure")
 	}
-	defer func() { dane.TLSDial = originalTLSDial }()
+	defer func() { tlsDialFn = originalTLSDial }()
 
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
-	conn, err := dane.DialTLS(config)
+	config := NewConfig("example.com", "192.0.2.1", 443)
+	conn, err := DialTLS(config)
 	if err == nil {
 		t.Fatal("Expected error from DialTLS, got nil")
 	}
@@ -283,13 +282,13 @@ func TestDialTLSTLSHandshakeFailure(t *testing.T) {
 }
 
 func TestDialTLSNetworkFailure(t *testing.T) {
-	dane.TLSDial = func(dialer *net.Dialer, network, addr string, config *tls.Config) (*tls.Conn, error) {
+	tlsDialFn = func(dialer *net.Dialer, network, addr string, config *tls.Config) (*tls.Conn, error) {
 		return nil, errors.New("network connection failure")
 	}
-	defer func() { dane.TLSDial = originalTLSDial }()
+	defer func() { tlsDialFn = originalTLSDial }()
 
-	config := dane.NewConfig("example.com", "192.0.2.1", 443)
-	conn, err := dane.DialTLS(config)
+	config := NewConfig("example.com", "192.0.2.1", 443)
+	conn, err := DialTLS(config)
 	if err == nil {
 		t.Fatal("Expected error from DialTLS, got nil")
 	}

@@ -146,8 +146,8 @@ func GetTLSconfig(daneconfig *Config) *tls.Config {
 	return config
 }
 
-// TLSDial is a package-level variable to allow for mocking in tests
-var TLSDial = tls.DialWithDialer
+// tlsDialFn is the TLS dial function; tests replace it with a mock.
+var tlsDialFn = tls.DialWithDialer
 
 // DialTLS takes a pointer to an initialized dane Config structure,
 // establishes and returns a TLS connection. The error return parameter
@@ -155,14 +155,14 @@ var TLSDial = tls.DialWithDialer
 //
 // DialTLS obtains a TLS config structure initialized with Dane
 // verification callbacks, and connects to the server network address
-// defined in Config using TLSDial.
+// defined in Config using tls.DialWithDialer().
 func DialTLS(daneconfig *Config) (*tls.Conn, error) {
 	var err error
 	var conn *tls.Conn
 
 	config := GetTLSconfig(daneconfig)
 	dialer := getDialer(daneconfig.TimeoutTCP)
-	conn, err = TLSDial(dialer, "tcp", daneconfig.Server.Address(), config)
+	conn, err = tlsDialFn(dialer, "tcp", daneconfig.Server.Address(), config)
 	return conn, err
 }
 
