@@ -7,9 +7,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-//
 // DNS resolver defaults
-//
 var (
 	defaultDNSTimeout          = 2
 	defaultDNSRetries          = 3
@@ -19,9 +17,7 @@ var (
 	defaultBufsize      uint16 = 1460
 )
 
-//
 // Resolver contains a DNS resolver configuration
-//
 type Resolver struct {
 	Servers      []*Server     // list of resolvers
 	Rdflag       bool          // set RD flag
@@ -35,10 +31,8 @@ type Resolver struct {
 	Pkixfallback bool          // whether to fallback to PKIX in getTLSA()
 }
 
-//
 // NewResolver initializes a new Resolver structure from a given IP
 // address (net.IP) and port number.
-//
 func NewResolver(servers []*Server) *Resolver {
 	r := new(Resolver)
 	r.Servers = servers
@@ -53,12 +47,10 @@ func NewResolver(servers []*Server) *Resolver {
 	return r
 }
 
-//
 // GetResolver returns a Resolver configuration structure containing
 // a list of DNS resolver addresses obtained from a custom resolver
 // configuration file or from the system default (/etc/resolv.conf)
 // if the config file is unspecified.
-//
 func GetResolver(resconf string) (*Resolver, error) {
 
 	var ip net.IP

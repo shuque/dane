@@ -8,12 +8,10 @@ import (
 	"strings"
 )
 
-//
 // GetHttpClient returns a net/http Client structure configured to perform
 // DANE TLS authentication of the HTTPS server. If the argument pkixfallback
 // is set to true, then PKIX authentication will be attempted if the server
 // does not have any published secure DANE TLSA records.
-//
 func GetHttpClient(pkixfallback bool) http.Client {
 
 	t := &http.Transport{

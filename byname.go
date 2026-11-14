@@ -8,9 +8,7 @@ import (
 	"time"
 )
 
-//
 // Response - response information
-//
 type Response struct {
 	config *Config
 	conn   *tls.Conn
@@ -23,7 +21,6 @@ var IPv6Headstart = 25 * time.Millisecond
 // Maximum number of parallel connections attempted
 var MaxParallelConnections = 30
 
-//
 // ConnectByName takes a hostname and port, resolves the addresses for
 // the hostname (IPv6 followed by IPv4), and then attempts to connect to
 // them and establish TLS using DANE or PKIX authentication - DANE is
@@ -33,7 +30,6 @@ var MaxParallelConnections = 30
 //
 // Uses a default DANE configuration. For a custom DANE configuration,
 // use the DialTLS or DialStartTLS functions instead.
-//
 func ConnectByName(hostname string, port int) (*tls.Conn, *Config, error) {
 
 	var conn *tls.Conn
@@ -74,10 +70,8 @@ func ConnectByName(hostname string, port int) (*tls.Conn, *Config, error) {
 		hostname)
 }
 
-//
 // ConnectByNameAsyncBase. Should not be called directly. Instead call
 // either ConnectByNameAsync or ConnectByNameAsync2
-//
 func ConnectByNameAsyncBase(hostname string, port int, pkixfallback bool) (*tls.Conn, *Config, error) {
 
 	var conn *tls.Conn
@@ -149,23 +143,19 @@ func ConnectByNameAsyncBase(hostname string, port int, pkixfallback bool) (*tls.
 		hostname)
 }
 
-//
 // ConnectByNameAsync is an async version of ConnectByName that tries
 // to connect to all server addresses in parallel, and returns the first
 // successful connection. IPv4 connections are intentionally delayed by
 // an IPv6HeadStart amount of time. Performs DANE authentication with
 // fallback to PKIX if no secure TLSA records are found.
-//
 func ConnectByNameAsync(hostname string, port int) (*tls.Conn, *Config, error) {
 
 	return ConnectByNameAsyncBase(hostname, port, true)
 }
 
-//
 // ConnectByNameAsync2 is the same as ConnectByNameAsync, but supports
 // an additional argument to specify whether PKIX fallback should be performed.
 // By setting that argument to false, we can require DANE only authentication.
-//
 func ConnectByNameAsync2(hostname string, port int, pkixfallback bool) (*tls.Conn, *Config, error) {
 
 	return ConnectByNameAsyncBase(hostname, port, pkixfallback)

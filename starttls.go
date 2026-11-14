@@ -11,10 +11,8 @@ import (
 
 const bufsize = 2048
 
-//
 // DoXMPP connects to an XNPP server, issue a STARTTLS command, negotiates
 // TLS and returns a TLS connection. See RFC 6120, Section 5.4.2 for details.
-//
 func DoXMPP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	var servicename, rolename string
@@ -90,10 +88,8 @@ func DoXMPP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	return TLShandshake(conn, tlsconfig)
 }
 
-//
 // DoPOP3 connects to a POP3 server, sends the STLS command, negotiates TLS,
 // and returns a TLS connection.
-//
 func DoPOP3(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	var line, transcript string
@@ -135,10 +131,8 @@ func DoPOP3(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	return TLShandshake(conn, tlsconfig)
 }
 
-//
 // DoIMAP connects to an IMAP server, issues a STARTTLS command, negotiates
 // TLS, and returns a TLS connection.
-//
 func DoIMAP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	var gotSTARTTLS bool
@@ -205,11 +199,9 @@ func DoIMAP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	return TLShandshake(conn, tlsconfig)
 }
 
-//
 // parseSMTPline parses an SMTP protocol line, and returns the replycode,
 // command string, whether the response is done (for a multi-line response),
 // and an error (on failure).
-//
 func parseSMTPline(line string) (int, string, bool, error) {
 
 	var responseDone = false
@@ -225,10 +217,8 @@ func parseSMTPline(line string) (int, string, bool, error) {
 	return replycode, rest, responseDone, err
 }
 
-//
 // DoSMTP connects to an SMTP server, checks for STARTTLS support, negotiates
 // TLS, and returns a TLS connection.
-//
 func DoSMTP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	var replycode int
@@ -323,9 +313,7 @@ func DoSMTP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	return TLShandshake(conn, tlsconfig)
 }
 
-//
 // StartTLS -
-//
 func StartTLS(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 
 	switch daneconfig.Appname {
