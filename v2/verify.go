@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -190,10 +191,177 @@ func evalRecord(rec *RecordResult, chain []*x509.Certificate, opts VerifyOptions
 	switch rec.Record.Usage {
 	case DANEEE:
 		verifyDANEEE(rec, chain[0])
-	default: // PKIXTA, PKIXEE, DANETA: implemented in a later task
+	case DANETA:
+		verifyDANETA(rec, chain, opts)
+	case PKIXEE:
+		verifyPKIXEE(rec, chain, opts)
+	case PKIXTA:
+		verifyPKIXTA(rec, chain, opts)
+	default:
 		rec.Status = StatusNoMatch
-		rec.Detail = "not implemented"
+		rec.Detail = "unknown usage"
 	}
+}
+
+func fail(rec *RecordResult, err error, detail string) {
+	rec.Status = StatusFailed
+	rec.Depth = -1
+	rec.err = err
+	rec.Detail = detail
+}
+
+func dataMatches(rec *RecordResult, c *x509.Certificate) bool {
+	d, err := ComputeData(rec.Record.Selector, rec.Record.MatchingType, c)
+	return err == nil && bytes.Equal(d, rec.Record.Data)
+}
+
+func ekuFor(role Role) []x509.ExtKeyUsage {
+	if role == RoleClient {
+		return []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+	}
+	return []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
+}
+
+func intermediates(chain []*x509.Certificate) *x509.CertPool {
+	p := x509.NewCertPool()
+	for _, c := range chain[1:] {
+		if c != nil {
+			p.AddCert(c)
+		}
+	}
+	return p
+}
+
+// checkName applies the role's reference-identity check to the EE cert.
+func checkName(ee *x509.Certificate, opts VerifyOptions) error {
+	if opts.Role == RoleClient {
+		want := strings.TrimSuffix(opts.Name, ".")
+		for _, n := range ee.DNSNames {
+			if strings.EqualFold(n, want) {
+				return nil
+			}
+		}
+		return fmt.Errorf("%w: %q not in certificate SANs", ErrNameMismatch, want)
+	}
+	if err := ee.VerifyHostname(opts.Name); err != nil {
+		return fmt.Errorf("%w: %v", ErrNameMismatch, err)
+	}
+	return nil
+}
+
+// nameCheckOutcome finishes a record whose data and chain checks passed.
+func nameCheckOutcome(rec *RecordResult, ee *x509.Certificate, depth int, opts VerifyOptions, what string) {
+	if err := checkName(ee, opts); err != nil {
+		fail(rec, err, what+" matched but name check failed: "+err.Error())
+		return
+	}
+	rec.Status = StatusMatched
+	rec.Depth = depth
+	rec.Detail = what + " match"
+}
+
+func verifyDANETA(rec *RecordResult, chain []*x509.Certificate, opts VerifyOptions) {
+	type cand struct {
+		cert  *x509.Certificate
+		depth int
+	}
+	var cands []cand
+	for i := 1; i < len(chain); i++ {
+		if chain[i] != nil && dataMatches(rec, chain[i]) {
+			cands = append(cands, cand{chain[i], i})
+		}
+	}
+	if len(cands) == 0 && rec.Record.Selector == SelectorCert && rec.Record.MatchingType == MatchFull {
+		// RFC 7671 section 5.2: a 2 0 0 TA need not be in the presented chain.
+		if c, err := x509.ParseCertificate(rec.Record.Data); err == nil {
+			cands = append(cands, cand{c, 1})
+		}
+	}
+	if len(cands) == 0 {
+		rec.Status = StatusNoMatch
+		rec.Detail = "no trust anchor in chain matches"
+		return
+	}
+	inter := intermediates(chain)
+	var lastErr error
+	for _, c := range cands {
+		roots := x509.NewCertPool()
+		roots.AddCert(c.cert)
+		_, err := chain[0].Verify(x509.VerifyOptions{
+			Roots:         roots,
+			Intermediates: inter,
+			KeyUsages:     ekuFor(opts.Role),
+			CurrentTime:   opts.CurrentTime,
+		})
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		nameCheckOutcome(rec, chain[0], c.depth, opts, "DANE-TA")
+		return
+	}
+	fail(rec, lastErr, "DANE-TA data matched but chain verification failed: "+lastErr.Error())
+}
+
+// pkixChains runs PKIX validation of the EE cert; the error is non-nil on failure.
+func pkixChains(chain []*x509.Certificate, opts VerifyOptions) ([][]*x509.Certificate, error) {
+	roots := opts.Roots
+	if roots == nil {
+		var err error
+		if roots, err = x509.SystemCertPool(); err != nil {
+			return nil, fmt.Errorf("loading system roots: %w", err)
+		}
+	}
+	return chain[0].Verify(x509.VerifyOptions{
+		Roots:         roots,
+		Intermediates: intermediates(chain),
+		KeyUsages:     ekuFor(opts.Role),
+		CurrentTime:   opts.CurrentTime,
+	})
+}
+
+func verifyPKIXEE(rec *RecordResult, chain []*x509.Certificate, opts VerifyOptions) {
+	if !dataMatches(rec, chain[0]) {
+		rec.Status = StatusNoMatch
+		rec.Detail = "EE certificate data does not match"
+		return
+	}
+	if _, err := pkixChains(chain, opts); err != nil {
+		fail(rec, err, "PKIX-EE data matched but PKIX validation failed: "+err.Error())
+		return
+	}
+	nameCheckOutcome(rec, chain[0], 0, opts, "PKIX-EE")
+}
+
+func verifyPKIXTA(rec *RecordResult, chain []*x509.Certificate, opts VerifyOptions) {
+	// Cheap pre-check so non-matching records do not need a PKIX run.
+	anyMatch := false
+	for i := 1; i < len(chain); i++ {
+		if chain[i] != nil && dataMatches(rec, chain[i]) {
+			anyMatch = true
+		}
+	}
+	chains, err := pkixChains(chain, opts)
+	if err != nil {
+		if anyMatch {
+			fail(rec, err, "PKIX-TA data matched but PKIX validation failed: "+err.Error())
+		} else {
+			// Data may match a pool root we cannot see, but PKIX failed anyway.
+			rec.Status = StatusNoMatch
+			rec.Detail = "PKIX validation failed: " + err.Error()
+		}
+		return
+	}
+	for _, vc := range chains {
+		for i := 1; i < len(vc); i++ {
+			if dataMatches(rec, vc[i]) {
+				nameCheckOutcome(rec, chain[0], i, opts, "PKIX-TA")
+				return
+			}
+		}
+	}
+	rec.Status = StatusNoMatch
+	rec.Detail = "no certificate in the validated chain matches"
 }
 
 // verifyDANEEE: match the EE cert only; no name or validity checks (RFC 7671 §5.1).
