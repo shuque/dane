@@ -1,6 +1,21 @@
 # dane
 Go library for DANE TLSA authentication
 
+This repository contains two Go modules:
+
+* **`github.com/shuque/dane`** (v1, at the repository root) is the
+  original library, which the rest of this page up to Version 2
+  describes. It looks up TLSA and address records, connects to TLS
+  servers (with optional STARTTLS), and authenticates them with DANE.
+  It can fall back to PKIX authentication.
+* **`github.com/shuque/dane/v2`** (in the [`v2/`](v2/) directory) is a
+  smaller, application-neutral rewrite. It looks up TLSA records and
+  verifies certificate chains against them, for both server and client
+  authentication. Client authentication includes TLS client
+  authentication with DANE
+  ([draft-ietf-dance-client-auth](https://datatracker.ietf.org/doc/draft-ietf-dance-client-auth/)).
+  It never makes connections itself. See [Version 2](#version-2) below.
+
 ### Pre-requisites
 
 * Go
@@ -125,3 +140,14 @@ GetHttpClient() returns a HTTP client structure (net/http.Client) configured to
 do DANE authentication of a HTTPS server. The "pkixfallback" boolean argument specifies
 whether or not to fallback to PKIX authentication if there are no secure TLSA records
 published for the server.
+
+### Version 2
+
+`github.com/shuque/dane/v2` is in the [`v2/`](v2/) directory. It is a
+separate Go module, so v1 users are unaffected. It is documented in
+[v2/README.md](v2/README.md), which covers usage, the trust model,
+server and client roles, lookup errors, and what was removed from v1.
+
+For a complete example of a program using v2, see
+[github.com/shuque/daneclient](https://github.com/shuque/daneclient), a
+reference implementation of TLS client authentication with DANE.
