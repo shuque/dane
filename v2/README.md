@@ -2,14 +2,16 @@
 
 Application-neutral DANE (RFC 6698, RFC 7671) TLSA lookup and certificate
 verification in Go, for both server and client authentication (including
-draft-ietf-dance-client-auth). It does two things:
+draft-ietf-dance-client-auth). It does the following:
 
 1. `Resolver.LookupTLSA` fetches TLSA records through a validating resolver.
 2. `Verify` checks a certificate chain against those records.
 
-The library never dials TLS. `Verify` takes a `[]*x509.Certificate`, so it
-works with any TLS stack or version. Requiring TLS 1.3, as the client-auth
-draft does, is the application's job.
+The library never dials TLS connections. `Verify` takes a
+`[]*x509.Certificate`, so it works with any TLS stack or version.
+If an application requires a specific version (e.g. TLS 1.3 or later
+for DANE TLS Client authentication), it needs to implement that
+restriction itself.
 
 ## Usage
 
